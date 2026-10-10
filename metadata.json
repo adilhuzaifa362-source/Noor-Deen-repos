@@ -1,0 +1,6 @@
+{
+  "name": "Noor Deen",
+  "description": "Authentic, non-profit, ad-free Islamic app with Quran, Hadith, Prayer Times, Qibla, Duas & Tools in 4 languages.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
