@@ -22,7 +22,7 @@ object IslamicAiChatbotService {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    private const val MODEL_NAME = "gemini-2.5-flash"
+    private const val MODEL_NAME = "gemini-3.5-flash"
     private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
     private const val SYSTEM_PROMPT = """You are Noor Deen AI (عالم نور الدين), an authentic Islamic knowledge assistant developed exclusively to provide guidance rooted strictly in the Holy Quran and authentic Sunnah.

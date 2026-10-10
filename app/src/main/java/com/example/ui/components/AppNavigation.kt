@@ -23,12 +23,15 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.CompassCalibration
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Mosque
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Mosque
 import androidx.compose.material.icons.outlined.VolunteerActivism
@@ -72,6 +75,7 @@ fun NoorDeenTopAppBar(
     currentLanguage: AppLanguage,
     onLanguageSelected: (AppLanguage) -> Unit,
     onOpenAiChat: (() -> Unit)? = null,
+    onOpenProfile: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showLanguageDialog by remember { mutableStateOf(false) }
@@ -129,6 +133,19 @@ fun NoorDeenTopAppBar(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = "Ask AI Scholar",
                         tint = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+
+            if (onOpenProfile != null) {
+                IconButton(
+                    onClick = onOpenProfile,
+                    modifier = Modifier.testTag("top_bar_profile_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "User Profile & Account",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -239,18 +256,18 @@ fun NoorDeenBottomNavigation(
     currentLanguage: AppLanguage,
     modifier: Modifier = Modifier
 ) {
+    val homeLabel = when (currentLanguage) {
+        AppLanguage.ARABIC -> "الرئيسية"
+        AppLanguage.URDU -> "صفحۂ اول"
+        AppLanguage.HINDI -> "होम"
+        AppLanguage.ENGLISH -> "Home"
+    }
+
     val quranLabel = when (currentLanguage) {
         AppLanguage.ARABIC -> "المصحف"
         AppLanguage.URDU -> "قرآن"
         AppLanguage.HINDI -> "क़ुरआन"
         AppLanguage.ENGLISH -> "Quran"
-    }
-
-    val duasLabel = when (currentLanguage) {
-        AppLanguage.ARABIC -> "الأدعية"
-        AppLanguage.URDU -> "دعائیں"
-        AppLanguage.HINDI -> "दुआएं"
-        AppLanguage.ENGLISH -> "Duas"
     }
 
     val prayerLabel = when (currentLanguage) {
@@ -271,7 +288,7 @@ fun NoorDeenBottomNavigation(
         AppLanguage.ARABIC -> "الأدوات"
         AppLanguage.URDU -> "وسائل"
         AppLanguage.HINDI -> "टूल्स"
-        AppLanguage.ENGLISH -> "Tools"
+        AppLanguage.ENGLISH -> "More"
     }
 
     NavigationBar(
@@ -282,6 +299,24 @@ fun NoorDeenBottomNavigation(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
+        NavigationBarItem(
+            selected = currentTab == NavigationTab.HOME,
+            onClick = { onTabSelected(NavigationTab.HOME) },
+            icon = {
+                Icon(
+                    imageVector = if (currentTab == NavigationTab.HOME) Icons.Filled.Home else Icons.Outlined.Home,
+                    contentDescription = homeLabel
+                )
+            },
+            label = { Text(homeLabel) },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = MaterialTheme.colorScheme.primary,
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            modifier = Modifier.testTag("nav_tab_home")
+        )
+
         NavigationBarItem(
             selected = currentTab == NavigationTab.QURAN,
             onClick = { onTabSelected(NavigationTab.QURAN) },
@@ -298,24 +333,6 @@ fun NoorDeenBottomNavigation(
                 indicatorColor = MaterialTheme.colorScheme.primaryContainer
             ),
             modifier = Modifier.testTag("nav_tab_quran")
-        )
-
-        NavigationBarItem(
-            selected = currentTab == NavigationTab.DUAS,
-            onClick = { onTabSelected(NavigationTab.DUAS) },
-            icon = {
-                Icon(
-                    imageVector = if (currentTab == NavigationTab.DUAS) Icons.Filled.AutoStories else Icons.Outlined.AutoStories,
-                    contentDescription = duasLabel
-                )
-            },
-            label = { Text(duasLabel) },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = MaterialTheme.colorScheme.primary,
-                selectedTextColor = MaterialTheme.colorScheme.primary,
-                indicatorColor = MaterialTheme.colorScheme.primaryContainer
-            ),
-            modifier = Modifier.testTag("nav_tab_duas")
         )
 
         NavigationBarItem(

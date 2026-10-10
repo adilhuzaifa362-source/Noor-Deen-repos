@@ -21,6 +21,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
@@ -38,11 +40,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -59,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.AppLanguage
 import com.example.model.Hadith
 import com.example.model.HadithTopic
+import com.example.service.HadithRepository
 import com.example.service.HadithSemanticEngine
 import com.example.viewmodel.NoorDeenViewModel
 import com.example.viewmodel.SubScreen
@@ -68,6 +74,7 @@ fun HadithScreen(
     viewModel: NoorDeenViewModel,
     modifier: Modifier = Modifier
 ) {
+    val selectedBook by viewModel.selectedHadithBook.collectAsState()
     val selectedTopic by viewModel.selectedHadithTopic.collectAsState()
     val selectedNarrator by viewModel.selectedNarrator.collectAsState()
     val searchQuery by viewModel.hadithSearchQuery.collectAsState()
@@ -76,13 +83,14 @@ fun HadithScreen(
 
     var activeDisplayLang by remember { mutableStateOf(currentLanguage) }
     var selectedHadithDetail by remember { mutableStateOf<Hadith?>(null) }
+    var browseTab by remember { mutableIntStateOf(0) } // 0: Browse by Book, 1: Browse by Category, 2: Semantic Search
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .testTag("hadith_screen_view")
     ) {
-        // Semantic Search Banner Card
+        // Top Header Banner with AI Scholar Shortcut
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -100,18 +108,25 @@ fun HadithScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Semantic Search",
+                            imageVector = Icons.Default.Verified,
+                            contentDescription = "Verified Hadith",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Semantic Search in Sahih Sitta",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Column {
+                            Text(
+                                text = "Verified Hadith Repository",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "Authentic narrations from Sahih Sitta (الكتب الستة)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     // Open AI Scholar Chatbot Button
@@ -126,83 +141,161 @@ fun HadithScreen(
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = "AI", tint = Color.White, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "Ask AI Scholar",
+                                text = "AI Scholar",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSecondary
+                                color = Color.White
                             )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Understand natural language queries across Arabic, English, Urdu & Hindi.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
 
-        // Search Input
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { viewModel.setHadithSearchQuery(it) },
-            placeholder = { Text("Search by meaning e.g. 'kindness to mother', 'intentions'...") },
-            leadingIcon = {
-                Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary)
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.setHadithSearchQuery("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear")
-                    }
-                }
-            },
-            singleLine = true,
+        // Browse Mode Tab Selector (Book vs Category vs Semantic Search)
+        TabRow(
+            selectedTabIndex = browseTab,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 4.dp)
-                .testTag("hadith_search_input"),
-            shape = RoundedCornerShape(12.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-            )
-        )
-
-        // Topic Filter Chips
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(vertical = 4.dp)
+                .padding(horizontal = 16.dp, vertical = 2.dp)
         ) {
-            item {
-                FilterChip(
-                    selected = selectedTopic == null,
-                    onClick = { viewModel.setHadithTopic(null) },
-                    label = { Text("All Topics") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-            }
-            items(HadithTopic.entries) { topic ->
-                val topicTitle = when (currentLanguage) {
-                    AppLanguage.URDU -> topic.displayNameUr
-                    AppLanguage.HINDI -> topic.displayNameHi
-                    AppLanguage.ARABIC -> topic.displayNameAr
-                    else -> topic.displayNameEn
+            Tab(
+                selected = browseTab == 0,
+                onClick = { browseTab = 0 },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Book, contentDescription = "Book", modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("By Book", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
-                FilterChip(
-                    selected = selectedTopic == topic,
-                    onClick = { viewModel.setHadithTopic(topic) },
-                    label = { Text(topicTitle) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.primary
-                    )
+            )
+            Tab(
+                selected = browseTab == 1,
+                onClick = { browseTab = 1 },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Category, contentDescription = "Category", modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("By Category", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            )
+            Tab(
+                selected = browseTab == 2,
+                onClick = { browseTab = 2 },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Search", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Contextual Controls depending on Tab
+        when (browseTab) {
+            0 -> {
+                // BROWSE BY BOOK (Sahih Sitta canonical collections)
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedBook == null || selectedBook == "All Books",
+                            onClick = { viewModel.setHadithBook("All Books") },
+                            label = { Text("All 6 Books") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.testTag("filter_book_all")
+                        )
+                    }
+                    items(HadithRepository.sahihSittaBooks) { bookName ->
+                        val isSelected = selectedBook == bookName
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.setHadithBook(bookName) },
+                            label = { Text(bookName) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.testTag("filter_book_${bookName.replace(" ", "_")}")
+                        )
+                    }
+                }
+            }
+            1 -> {
+                // BROWSE BY CATEGORY / TOPIC
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedTopic == null,
+                            onClick = { viewModel.setHadithTopic(null) },
+                            label = { Text("All Categories") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.testTag("filter_topic_all")
+                        )
+                    }
+                    items(HadithTopic.entries) { topic ->
+                        val topicTitle = when (currentLanguage) {
+                            AppLanguage.URDU -> topic.displayNameUr
+                            AppLanguage.HINDI -> topic.displayNameHi
+                            AppLanguage.ARABIC -> topic.displayNameAr
+                            else -> topic.displayNameEn
+                        }
+                        FilterChip(
+                            selected = selectedTopic == topic,
+                            onClick = { viewModel.setHadithTopic(topic) },
+                            label = { Text(topicTitle) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.testTag("filter_topic_${topic.name}")
+                        )
+                    }
+                }
+            }
+            2 -> {
+                // SEARCH BAR
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.setHadithSearchQuery(it) },
+                    placeholder = { Text("Search by meaning e.g. 'kindness', 'intentions', 'fasting'...") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = "Search", tint = MaterialTheme.colorScheme.primary)
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.setHadithSearchQuery("") }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 2.dp)
+                        .testTag("hadith_search_input"),
+                    shape = RoundedCornerShape(12.dp)
                 )
             }
         }
@@ -211,7 +304,7 @@ fun HadithScreen(
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(bottom = 6.dp)
+            modifier = Modifier.padding(vertical = 2.dp)
         ) {
             items(HadithSemanticEngine.allNarrators) { narrator ->
                 FilterChip(
@@ -229,7 +322,7 @@ fun HadithScreen(
             }
         }
 
-        // Language Selector Chips for Matn / Translation View
+        // Language Selector Chips for Matn / Translation View & Count Badge
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -240,10 +333,20 @@ fun HadithScreen(
             Text(
                 text = "${filteredHadiths.size} Sahih Hadiths found",
                 style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Translate,
+                    contentDescription = "Language",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
                 AppLanguage.entries.forEach { lang ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -257,126 +360,185 @@ fun HadithScreen(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (activeDisplayLang == lang) Color.White else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                         )
                     }
                 }
             }
         }
 
-        // Hadiths List
-        if (filteredHadiths.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "No Results",
-                        tint = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "No matching Hadiths found",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Try natural language queries like 'mother', 'intention', 'purity', or 'fasting'.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center
-                    )
+        // Hadith Narrations List
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(top = 6.dp, bottom = 80.dp)
+        ) {
+            if (filteredHadiths.isEmpty()) {
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No matching Hadiths found.",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Try clearing search filters or selecting 'All Books' or 'All Categories'.",
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(onClick = {
+                                viewModel.setHadithBook("All Books")
+                                viewModel.setHadithTopic(null)
+                                viewModel.setHadithNarrator("All Narrators")
+                                viewModel.setHadithSearchQuery("")
+                            }) {
+                                Text("Reset All Filters")
+                            }
+                        }
+                    }
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 8.dp, bottom = 80.dp)
-            ) {
-                items(filteredHadiths) { hadith ->
-                    HadithItemCardEnriched(
-                        hadith = hadith,
-                        displayLang = activeDisplayLang,
-                        onClick = { selectedHadithDetail = hadith }
-                    )
-                }
+
+            items(filteredHadiths) { hadith ->
+                HadithCard(
+                    hadith = hadith,
+                    activeLang = activeDisplayLang,
+                    onClick = { selectedHadithDetail = hadith }
+                )
             }
         }
     }
 
-    // Detail Dialog
-    selectedHadithDetail?.let { hadith ->
+    // Hadith Full Detail Modal Dialog
+    if (selectedHadithDetail != null) {
+        val h = selectedHadithDetail!!
         AlertDialog(
             onDismissRequest = { selectedHadithDetail = null },
+            modifier = Modifier.testTag("hadith_detail_dialog"),
             title = {
-                Column {
-                    Text(
-                        text = "${hadith.book} • ${hadith.hadithNumber}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Grading: ${hadith.grading} • Narrator: ${hadith.narrator}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
-            },
-            text = {
-                LazyColumn(modifier = Modifier.height(380.dp)) {
-                    item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
                         Text(
-                            text = hadith.sanad,
+                            text = h.book,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "${h.hadithNumber} • ${h.chapter}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
                         Text(
-                            text = hadith.matnArabic,
+                            text = h.grading,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            },
+            text = {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    item {
+                        // Sanad Chain
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = h.sanad,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
+
+                    item {
+                        // Arabic Matn Text
+                        Text(
+                            text = h.matnArabic,
+                            fontSize = 20.sp,
                             fontFamily = FontFamily.Serif,
-                            fontSize = 22.sp,
-                            lineHeight = 36.sp,
-                            textAlign = TextAlign.Right,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth(),
+                            lineHeight = 32.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "English Translation:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = h.matnEn,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = "اردو ترجمہ (Urdu Translation):",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(
+                            text = h.matnUr,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.End,
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                    }
 
+                    item {
                         Text(
-                            text = "English:",
+                            text = "हिन्दी अनुवाद (Hindi Translation):",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Text(text = hadith.matnEn, style = MaterialTheme.typography.bodyMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-
                         Text(
-                            text = "اردو ترجمہ:",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            text = h.matnHi,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text(text = hadith.matnUr, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Serif)
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "हिन्दी अनुवाद:",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        Text(text = hadith.matnHi, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             },
@@ -390,9 +552,9 @@ fun HadithScreen(
 }
 
 @Composable
-fun HadithItemCardEnriched(
+private fun HadithCard(
     hadith: Hadith,
-    displayLang: AppLanguage,
+    activeLang: AppLanguage,
     onClick: () -> Unit
 ) {
     Card(
@@ -400,101 +562,103 @@ fun HadithItemCardEnriched(
             .fillMaxWidth()
             .clickable { onClick() }
             .testTag("hadith_card_${hadith.id}"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            // Source & Grading Badges
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header Info Bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "${hadith.book} • ${hadith.hadithNumber}",
+                        text = hadith.book,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Narrated by: ${hadith.narrator}",
+                        text = "• ${hadith.hadithNumber}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        fontWeight = FontWeight.SemiBold
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                // Verified Scholar Grading Badge
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(6.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Verified,
-                            contentDescription = "Grading",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = hadith.grading,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text(
+                        text = hadith.grading,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Matn (Arabic Text)
+            // Arabic Matn
             Text(
                 text = hadith.matnArabic,
+                fontSize = 18.sp,
                 fontFamily = FontFamily.Serif,
-                fontSize = 20.sp,
-                lineHeight = 32.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Right,
-                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.End,
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 3
+                lineHeight = 28.sp,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Translation according to active language
-            val transText = when (displayLang) {
+            // Translated Text based on Active Language Selection
+            val translationText = when (activeLang) {
                 AppLanguage.URDU -> hadith.matnUr
                 AppLanguage.HINDI -> hadith.matnHi
                 AppLanguage.ARABIC -> hadith.matnEn
                 else -> hadith.matnEn
             }
+
             Text(
-                text = transText,
+                text = translationText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 3
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 4
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Topic Badge
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
+            // Footer with Narrator & Chapter
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = hadith.topic.displayNameEn,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    text = "Narrator: ${hadith.narrator}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+
+                Text(
+                    text = "View Narration →",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }

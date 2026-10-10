@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
+import com.example.ui.components.AddCustomCityDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -99,6 +100,7 @@ fun PrayerTimesMainView(
 
     var showCityDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
+    var showAddCustomCityDialog by remember { mutableStateOf(false) }
 
     val nextPrayer = prayerTimes.firstOrNull { it.isNext } ?: prayerTimes.firstOrNull()
 
@@ -324,8 +326,24 @@ fun PrayerTimesMainView(
             onDismissRequest = { showCityDialog = false },
             title = { Text("Select City (المدينة)", style = MaterialTheme.typography.titleMedium) },
             text = {
-                LazyColumn(modifier = Modifier.height(300.dp)) {
-                    items(IslamicData.worldCities) { city ->
+                Column {
+                    OutlinedButton(
+                        onClick = {
+                            showCityDialog = false
+                            showAddCustomCityDialog = true
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .testTag("prayer_add_custom_city_button")
+                    ) {
+                        Icon(Icons.Default.LocationOn, contentDescription = "Add Coordinates", modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Add Custom Coordinates (Lat/Long)")
+                    }
+
+                    LazyColumn(modifier = Modifier.height(280.dp)) {
+                        items(IslamicData.worldCities) { city ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -360,12 +378,13 @@ fun PrayerTimesMainView(
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showCityDialog = false }) { Text("Close") }
             }
-        )
-    }
+        },
+        confirmButton = {
+            TextButton(onClick = { showCityDialog = false }) { Text("Close") }
+        }
+    )
+}
 
     // Settings Dialog
     if (showSettingsDialog) {
@@ -426,6 +445,15 @@ fun PrayerTimesMainView(
             },
             confirmButton = {
                 TextButton(onClick = { showSettingsDialog = false }) { Text("Save") }
+            }
+        )
+    }
+
+    if (showAddCustomCityDialog) {
+        AddCustomCityDialog(
+            onDismiss = { showAddCustomCityDialog = false },
+            onAddCity = { name, country, lat, lon, calcMethod, juristic ->
+                viewModel.addCustomCity(name, country, lat, lon, calcMethod, juristic)
             }
         )
     }

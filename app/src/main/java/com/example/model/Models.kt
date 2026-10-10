@@ -205,3 +205,17 @@ data class HijriDateEvent(
     val significance: String,
     val isFastingRecommended: Boolean
 )
+
+data class UserProfile(
+    val id: String = "guest_1",
+    val name: String = "Guest Worshipper",
+    val email: String = "guest@noordeen.app",
+    val isLoggedIn: Boolean = false,
+    val authProvider: String = "Guest", // "Google", "Email", "Guest"
+    val city: String = "Makkah Al-Mukarramah",
+    val country: String = "Saudi Arabia",
+    val latitude: Double = 21.4225,
+    val longitude: Double = 39.8262,
+    val juristicMethod: JuristicMethod = JuristicMethod.HANAFI,
+    val calculationMethod: CalculationMethod = CalculationMethod.MWL
+)

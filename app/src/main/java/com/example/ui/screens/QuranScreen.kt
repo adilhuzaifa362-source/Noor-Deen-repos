@@ -17,18 +17,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.ViewAgenda
 import androidx.compose.material.icons.filled.ViewColumn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,12 +42,15 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -372,19 +381,28 @@ fun SurahReaderView(
     val audioProgress by viewModel.audioProgress.collectAsState()
     val selectedQari by viewModel.selectedQari.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val selectedAyahIndex by viewModel.selectedAyahIndex.collectAsState()
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     var showTajweedGuideDialog by remember { mutableStateOf(false) }
+    var showAyahSelectorDialog by remember { mutableStateOf(false) }
+    var readerTranslationMode by remember { mutableStateOf("DEFAULT") } // "DEFAULT", "EN", "UR", "HI", "ALL", "AR_ONLY"
+
+    val verses = if (surah.verses.isNotEmpty()) surah.verses else IslamicData.fatihaVerses
 
     Box(modifier = modifier.fillMaxSize().testTag("surah_reader_view")) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header Bar
+            // Header Bar & Controls
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    // Top row: Back, Prev Surah, Title, Next Surah, Tajweed, View
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -397,22 +415,63 @@ fun SurahReaderView(
                             ) {
                                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                             }
+
+                            // Previous Surah Button
+                            IconButton(
+                                onClick = { viewModel.selectPrevSurah() },
+                                modifier = Modifier.size(32.dp).testTag("reader_prev_surah_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Previous Surah",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
                             Column {
                                 Text(
-                                    text = "${surah.nameEn} (${surah.nameArabic})",
+                                    text = "${surah.number}. ${surah.nameEn} (${surah.nameArabic})",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "${surah.revelationType.name} • ${surah.totalAyahs} Verses",
+                                    text = "${if (surah.revelationType == RevelationType.MAKKI) "Makki" else "Madani"} • ${surah.totalAyahs} Ayahs",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
 
-                        // View controls
+                        // Right Controls: Next Surah, Ayah Selector, Tajweed, Layout
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Next Surah Button
+                            IconButton(
+                                onClick = { viewModel.selectNextSurah() },
+                                modifier = Modifier.size(32.dp).testTag("reader_next_surah_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = "Next Surah",
+                                    modifier = Modifier.size(18.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            // Jump to Ayah Dialog Button
+                            IconButton(
+                                onClick = { showAyahSelectorDialog = true },
+                                modifier = Modifier.testTag("jump_to_ayah_dialog_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FormatListNumbered,
+                                    contentDescription = "Select Ayah",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
                             // Tajweed Toggle
                             IconButton(
                                 onClick = { viewModel.toggleTajweed() },
@@ -439,6 +498,137 @@ fun SurahReaderView(
                         }
                     }
 
+                    // Multilingual Translation Selector Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Translate,
+                            contentDescription = "Translation",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+
+                        val transOptions = listOf(
+                            "DEFAULT" to "App Language",
+                            "EN" to "English",
+                            "UR" to "اردو (Urdu)",
+                            "HI" to "हिन्दी (Hindi)",
+                            "ALL" to "All 3 Langs",
+                            "AR_ONLY" to "Arabic Only"
+                        )
+
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(transOptions) { (key, label) ->
+                                val isSelected = readerTranslationMode == key
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { readerTranslationMode = key }
+                                ) {
+                                    Text(
+                                        text = label,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Surah Horizontal Quick Carousel
+                    Text(
+                        text = "Scroll Surahs:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(IslamicData.allSurahs) { s ->
+                            val isCurrent = s.number == surah.number
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        viewModel.openSurah(s)
+                                        coroutineScope.launch { listState.scrollToItem(0) }
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${s.number}. ${s.nameEn}",
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = s.nameArabic,
+                                        fontSize = 12.sp,
+                                        fontFamily = FontFamily.Serif,
+                                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Quick Ayah Selector Strip
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Ayah:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            items(verses) { v ->
+                                val isSelectedAyah = selectedAyahIndex == v.ayahNumber
+                                Box(
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelectedAyah) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable {
+                                            viewModel.jumpToAyah(v.ayahNumber)
+                                            coroutineScope.launch {
+                                                val targetIndex = (v.ayahNumber).coerceIn(0, verses.size)
+                                                listState.animateScrollToItem(targetIndex)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${v.ayahNumber}",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelectedAyah) Color.White else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Tajweed Guide Bar
                     if (isTajweedEnabled) {
                         Spacer(modifier = Modifier.height(4.dp))
@@ -451,11 +641,12 @@ fun SurahReaderView(
 
             // Verses Scrollable Area
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(top = 12.dp, bottom = 120.dp),
+                contentPadding = PaddingValues(top = 10.dp, bottom = 120.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Bismillah Banner (For Surahs other than At-Tawbah)
@@ -464,7 +655,7 @@ fun SurahReaderView(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -479,10 +670,8 @@ fun SurahReaderView(
                     }
                 }
 
-                val verses = if (surah.verses.isNotEmpty()) surah.verses else IslamicData.fatihaVerses
-
                 items(verses) { verse ->
-                    val isHighlighted = isPlayingAudio && currentAyah == verse.ayahNumber
+                    val isHighlighted = (isPlayingAudio && currentAyah == verse.ayahNumber) || (selectedAyahIndex == verse.ayahNumber)
 
                     Card(
                         modifier = Modifier
@@ -497,7 +686,7 @@ fun SurahReaderView(
                         ),
                         elevation = CardDefaults.cardElevation(defaultElevation = if (isHighlighted) 4.dp else 1.dp)
                     ) {
-                        if (isSideBySide) {
+                        if (isSideBySide && readerTranslationMode != "AR_ONLY") {
                             // Side-by-Side Layout
                             Row(
                                 modifier = Modifier
@@ -514,17 +703,28 @@ fun SurahReaderView(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    val transText = when (currentLanguage) {
-                                        AppLanguage.URDU -> verse.translationUr
-                                        AppLanguage.HINDI -> verse.translationHi
-                                        AppLanguage.ARABIC -> verse.transliteration
-                                        else -> verse.translationEn
+
+                                    when (readerTranslationMode) {
+                                        "EN" -> Text(verse.translationEn, style = MaterialTheme.typography.bodyMedium)
+                                        "UR" -> Text(verse.translationUr, style = MaterialTheme.typography.bodyMedium)
+                                        "HI" -> Text(verse.translationHi, style = MaterialTheme.typography.bodyMedium)
+                                        "ALL" -> {
+                                            Text(verse.translationEn, style = MaterialTheme.typography.bodySmall)
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(verse.translationUr, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(verse.translationHi, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                                        }
+                                        else -> {
+                                            val transText = when (currentLanguage) {
+                                                AppLanguage.URDU -> verse.translationUr
+                                                AppLanguage.HINDI -> verse.translationHi
+                                                AppLanguage.ARABIC -> verse.transliteration
+                                                else -> verse.translationEn
+                                            }
+                                            Text(transText, style = MaterialTheme.typography.bodyMedium)
+                                        }
                                     }
-                                    Text(
-                                        text = transText,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
                                 }
 
                                 // Right: Uthmani Arabic with Tajweed
@@ -576,36 +776,134 @@ fun SurahReaderView(
                                     onTajweedRuleClick = { viewModel.showTajweedLegend(it) }
                                 )
 
-                                Spacer(modifier = Modifier.height(10.dp))
+                                if (readerTranslationMode != "AR_ONLY") {
+                                    Spacer(modifier = Modifier.height(8.dp))
 
-                                // Transliteration
-                                Text(
-                                    text = verse.transliteration,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    lineHeight = 18.sp
-                                )
+                                    // Transliteration
+                                    Text(
+                                        text = verse.transliteration,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 18.sp
+                                    )
 
-                                Spacer(modifier = Modifier.height(6.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
 
-                                // Active Translation
-                                val primaryTrans = when (currentLanguage) {
-                                    AppLanguage.URDU -> verse.translationUr
-                                    AppLanguage.HINDI -> verse.translationHi
-                                    AppLanguage.ARABIC -> verse.translationEn
-                                    else -> verse.translationEn
+                                    // Multilingual translations rendering
+                                    when (readerTranslationMode) {
+                                        "EN" -> {
+                                            Text(
+                                                text = verse.translationEn,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                        "UR" -> {
+                                            Text(
+                                                text = verse.translationUr,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                        "HI" -> {
+                                            Text(
+                                                text = verse.translationHi,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                        "ALL" -> {
+                                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text(
+                                                    text = "EN: ${verse.translationEn}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "اردو: ${verse.translationUr}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.secondary
+                                                )
+                                                Text(
+                                                    text = "हिन्दी: ${verse.translationHi}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                        else -> {
+                                            val primaryTrans = when (currentLanguage) {
+                                                AppLanguage.URDU -> verse.translationUr
+                                                AppLanguage.HINDI -> verse.translationHi
+                                                AppLanguage.ARABIC -> verse.translationEn
+                                                else -> verse.translationEn
+                                            }
+                                            Text(
+                                                text = primaryTrans,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
                                 }
-                                Text(
-                                    text = primaryTrans,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
                             }
                         }
                     }
                 }
             }
+        }
+
+        // Jump To Ayah Dialog
+        if (showAyahSelectorDialog) {
+            AlertDialog(
+                onDismissRequest = { showAyahSelectorDialog = false },
+                title = { Text("Jump to Ayah in ${surah.nameEn}") },
+                text = {
+                    Column {
+                        Text(
+                            text = "Select any of the ${verses.size} verses to jump directly:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(verses) { v ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (selectedAyahIndex == v.ayahNumber) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            viewModel.jumpToAyah(v.ayahNumber)
+                                            coroutineScope.launch {
+                                                val targetIndex = (v.ayahNumber).coerceIn(0, verses.size)
+                                                listState.animateScrollToItem(targetIndex)
+                                            }
+                                            showAyahSelectorDialog = false
+                                        }
+                                ) {
+                                    Text(
+                                        text = "${v.ayahNumber}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (selectedAyahIndex == v.ayahNumber) Color.White else MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showAyahSelectorDialog = false }) {
+                        Text("Close")
+                    }
+                }
+            )
         }
 
         // Bottom Synchronized Audio Player

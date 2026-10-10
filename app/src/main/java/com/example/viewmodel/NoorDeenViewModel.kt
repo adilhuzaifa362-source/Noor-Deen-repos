@@ -30,6 +30,8 @@ import com.example.model.Qari
 import com.example.model.Supplication
 import com.example.model.Surah
 import com.example.model.TajweedType
+import com.example.model.UserProfile
+import com.example.service.HadithRepository
 import com.example.service.PrayerAndQiblaService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -42,7 +44,7 @@ import java.util.Calendar
 import kotlin.math.abs
 
 enum class NavigationTab {
-    QURAN, DUAS, PRAYER, HADITH, TOOLS
+    HOME, QURAN, PRAYER, HADITH, TOOLS
 }
 
 enum class SubScreen {
@@ -55,7 +57,8 @@ enum class SubScreen {
     RAMADAN_KHATAM,
     DIGITAL_TASBEEH,
     HIJRI_CALENDAR,
-    AI_SCHOLAR_CHAT
+    AI_SCHOLAR_CHAT,
+    AUTH_PROFILE
 }
 
 class NoorDeenViewModel(application: Application) : AndroidViewModel(application) {
@@ -64,11 +67,15 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     private val _currentLanguage = MutableStateFlow(AppLanguage.ENGLISH)
     val currentLanguage: StateFlow<AppLanguage> = _currentLanguage.asStateFlow()
 
-    private val _currentTab = MutableStateFlow(NavigationTab.QURAN)
+    private val _currentTab = MutableStateFlow(NavigationTab.HOME)
     val currentTab: StateFlow<NavigationTab> = _currentTab.asStateFlow()
 
     private val _currentSubScreen = MutableStateFlow<SubScreen?>(null)
     val currentSubScreen: StateFlow<SubScreen?> = _currentSubScreen.asStateFlow()
+
+    // User Profile & Authentication
+    private val _userProfile = MutableStateFlow(UserProfile())
+    val userProfile: StateFlow<UserProfile> = _userProfile.asStateFlow()
 
     // Quran & Recitation Sciences
     private val _selectedSurah = MutableStateFlow(IslamicData.allSurahs.first())
@@ -82,6 +89,12 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
 
     private val _selectedTajweedLegend = MutableStateFlow<TajweedType?>(null)
     val selectedTajweedLegend: StateFlow<TajweedType?> = _selectedTajweedLegend.asStateFlow()
+
+    private val _selectedAyahIndex = MutableStateFlow<Int?>(null)
+    val selectedAyahIndex: StateFlow<Int?> = _selectedAyahIndex.asStateFlow()
+
+    private val _readerTranslationLanguage = MutableStateFlow(AppLanguage.ENGLISH)
+    val readerTranslationLanguage: StateFlow<AppLanguage> = _readerTranslationLanguage.asStateFlow()
 
     private val _selectedQari = MutableStateFlow(IslamicData.qaris.first())
     val selectedQari: StateFlow<Qari> = _selectedQari.asStateFlow()
@@ -116,14 +129,17 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     private val _bookmarkedDuaIds = MutableStateFlow<Set<String>>(emptySet())
     val bookmarkedDuaIds: StateFlow<Set<String>> = _bookmarkedDuaIds.asStateFlow()
 
-    // Prayer & Qibla
+    // Prayer & Qibla (Defaulting to Hanafi timing calculation)
+    private val _customCities = MutableStateFlow<List<CityLocation>>(emptyList())
+    val customCities: StateFlow<List<CityLocation>> = _customCities.asStateFlow()
+
     private val _selectedCity = MutableStateFlow(IslamicData.worldCities.first())
     val selectedCity: StateFlow<CityLocation> = _selectedCity.asStateFlow()
 
     private val _calculationMethod = MutableStateFlow(CalculationMethod.MWL)
     val calculationMethod: StateFlow<CalculationMethod> = _calculationMethod.asStateFlow()
 
-    private val _juristicMethod = MutableStateFlow(JuristicMethod.SHAFI_STANDARD)
+    private val _juristicMethod = MutableStateFlow(JuristicMethod.HANAFI)
     val juristicMethod: StateFlow<JuristicMethod> = _juristicMethod.asStateFlow()
 
     private val _prayerTimes = MutableStateFlow<List<PrayerTime>>(emptyList())
@@ -165,7 +181,13 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     private val _apiTimezone = MutableStateFlow<String?>(null)
     val apiTimezone: StateFlow<String?> = _apiTimezone.asStateFlow()
 
-    // Hadith
+    // Hadith & Canonical Sahih Sitta Collection
+    private val _selectedHadithBook = MutableStateFlow<String?>("All Books")
+    val selectedHadithBook: StateFlow<String?> = _selectedHadithBook.asStateFlow()
+
+    private val _hadithBrowseMode = MutableStateFlow("BOOK") // "BOOK", "CATEGORY", "SEARCH"
+    val hadithBrowseMode: StateFlow<String> = _hadithBrowseMode.asStateFlow()
+
     private val _selectedHadithTopic = MutableStateFlow<HadithTopic?>(null)
     val selectedHadithTopic: StateFlow<HadithTopic?> = _selectedHadithTopic.asStateFlow()
 
@@ -178,7 +200,7 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     private val _selectedHadith = MutableStateFlow<Hadith?>(null)
     val selectedHadith: StateFlow<Hadith?> = _selectedHadith.asStateFlow()
 
-    private val _filteredHadiths = MutableStateFlow(HadithSemanticEngine.hadiths)
+    private val _filteredHadiths = MutableStateFlow(HadithRepository.getAllHadiths())
     val filteredHadiths: StateFlow<List<Hadith>> = _filteredHadiths.asStateFlow()
 
     // AI Scholar Chatbot
@@ -350,6 +372,33 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    fun jumpToAyah(ayahNumber: Int) {
+        _selectedAyahIndex.value = ayahNumber
+        _currentPlayingAyah.value = ayahNumber
+    }
+
+    fun setReaderTranslationLanguage(language: AppLanguage) {
+        _readerTranslationLanguage.value = language
+    }
+
+    fun selectNextSurah() {
+        val currentNum = _selectedSurah.value.number
+        val nextSurah = IslamicData.allSurahs.find { it.number == currentNum + 1 }
+            ?: IslamicData.allSurahs.first()
+        openSurah(nextSurah)
+        _selectedAyahIndex.value = 1
+        _currentPlayingAyah.value = 1
+    }
+
+    fun selectPrevSurah() {
+        val currentNum = _selectedSurah.value.number
+        val prevSurah = IslamicData.allSurahs.find { it.number == currentNum - 1 }
+            ?: IslamicData.allSurahs.last()
+        openSurah(prevSurah)
+        _selectedAyahIndex.value = 1
+        _currentPlayingAyah.value = 1
+    }
+
     // Duas & Wazifas Actions
     fun filterDuaCategory(category: DuaCategory?) {
         _selectedDuaCategory.value = category
@@ -466,6 +515,102 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * Add a custom city with specific latitude & longitude.
+     * By user requirement, calculates prayer timing defaulting to Hanafi method (Asr Shadow 2x).
+     */
+    fun addCustomCity(
+        cityName: String,
+        countryName: String,
+        latitude: Double,
+        longitude: Double,
+        calcMethod: CalculationMethod = CalculationMethod.MWL,
+        juristicMethod: JuristicMethod = JuristicMethod.HANAFI
+    ) {
+        val newCity = CityLocation(
+            name = cityName.trim(),
+            country = countryName.trim(),
+            latitude = latitude,
+            longitude = longitude,
+            timeZoneOffsetHours = (longitude / 15.0).coerceIn(-12.0, 14.0)
+        )
+        _customCities.value = _customCities.value + newCity
+        _selectedCity.value = newCity
+        _calculationMethod.value = calcMethod
+        _juristicMethod.value = juristicMethod // Defaults to Hanafi
+        _isLiveLocationActive.value = false
+        _liveCoordinates.value = Pair(latitude, longitude)
+        updatePrayerTimes()
+        fetchPrayerTimesFromApi(latitude, longitude, "${newCity.name}, ${newCity.country}")
+
+        _userProfile.value = _userProfile.value.copy(
+            city = newCity.name,
+            country = newCity.country,
+            latitude = newCity.latitude,
+            longitude = newCity.longitude,
+            juristicMethod = juristicMethod
+        )
+    }
+
+    // User Profile & Authentication Actions
+    fun login(email: String, pass: String): Boolean {
+        if (email.isBlank() || pass.isBlank()) return false
+        val cleanName = email.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() }
+        _userProfile.value = _userProfile.value.copy(
+            name = cleanName,
+            email = email.trim(),
+            isLoggedIn = true,
+            authProvider = "Email"
+        )
+        return true
+    }
+
+    fun signup(
+        name: String,
+        email: String,
+        pass: String,
+        city: String,
+        country: String,
+        lat: Double,
+        lon: Double
+    ): Boolean {
+        if (email.isBlank() || name.isBlank()) return false
+        val effectiveCity = if (city.isBlank()) "Makkah" else city.trim()
+        val effectiveCountry = if (country.isBlank()) "Saudi Arabia" else country.trim()
+
+        _userProfile.value = UserProfile(
+            name = name.trim(),
+            email = email.trim(),
+            isLoggedIn = true,
+            authProvider = "Email",
+            city = effectiveCity,
+            country = effectiveCountry,
+            latitude = lat,
+            longitude = lon,
+            juristicMethod = JuristicMethod.HANAFI
+        )
+        addCustomCity(effectiveCity, effectiveCountry, lat, lon, _calculationMethod.value, JuristicMethod.HANAFI)
+        return true
+    }
+
+    fun loginWithGoogle() {
+        _userProfile.value = _userProfile.value.copy(
+            name = "Adil Huzaifa",
+            email = "adilhuzaifa362@gmail.com",
+            isLoggedIn = true,
+            authProvider = "Google"
+        )
+    }
+
+    fun logout() {
+        _userProfile.value = UserProfile(
+            name = "Guest Worshipper",
+            email = "guest@noordeen.app",
+            isLoggedIn = false,
+            authProvider = "Guest"
+        )
+    }
+
     private fun updatePrayerTimes() {
         val times = PrayerAndQiblaService.computePrayerTimes(
             city = _selectedCity.value,
@@ -504,7 +649,16 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
         compassManager?.stopListening()
     }
 
-    // Hadith Actions
+    // Hadith Repository & Browsing Actions
+    fun setHadithBook(book: String?) {
+        _selectedHadithBook.value = book
+        updateHadithResults()
+    }
+
+    fun setHadithBrowseMode(mode: String) {
+        _hadithBrowseMode.value = mode
+    }
+
     fun setHadithTopic(topic: HadithTopic?) {
         _selectedHadithTopic.value = topic
         updateHadithResults()
@@ -521,12 +675,18 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun updateHadithResults() {
-        _filteredHadiths.value = HadithSemanticEngine.search(
+        val baseResults = HadithSemanticEngine.search(
             query = _hadithSearchQuery.value,
             selectedTopic = _selectedHadithTopic.value,
             selectedNarrator = _selectedNarrator.value,
             selectedLanguage = _currentLanguage.value
         )
+        val book = _selectedHadithBook.value
+        _filteredHadiths.value = if (book.isNullOrBlank() || book == "All Books") {
+            baseResults
+        } else {
+            baseResults.filter { it.book.equals(book, ignoreCase = true) }
+        }
     }
 
     fun selectHadith(hadith: Hadith?) {
