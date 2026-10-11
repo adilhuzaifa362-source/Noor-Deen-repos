@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,6 +35,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -141,6 +145,63 @@ fun HomeScreen(
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = if (userProfile.isLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // Regional Subcontinent Country Switcher (India & Neighbors)
+        item {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Subcontinent Edition • India & Neighbors",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Hanafi Timing • Karachi 18°",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                val regionalQuickCountries = listOf(
+                    Pair("India", "Delhi (New Delhi)"),
+                    Pair("Pakistan", "Karachi"),
+                    Pair("Bangladesh", "Dhaka"),
+                    Pair("Afghanistan", "Kabul"),
+                    Pair("Nepal", "Kathmandu"),
+                    Pair("Sri Lanka", "Colombo"),
+                    Pair("Maldives", "Malé"),
+                    Pair("Bhutan", "Thimphu"),
+                    Pair("Myanmar", "Yangon")
+                )
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(regionalQuickCountries) { (cName, _) ->
+                        val isSelected = selectedCity.country.equals(cName, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                val targetCity = IslamicData.worldCities.find { it.country.equals(cName, ignoreCase = true) }
+                                if (targetCity != null) {
+                                    viewModel.setCity(targetCity)
+                                }
+                            },
+                            label = { Text(cName, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            )
                         )
                     }
                 }
@@ -324,7 +385,7 @@ fun HomeScreen(
                             )
                         }
                         Text(
-                            text = "Lat: ${String.format(Locale.US, "%.4f", selectedCity.latitude)}° • Lon: ${String.format(Locale.US, "%.4f", selectedCity.longitude)}° (Hanafi Calculation)",
+                            text = "Lat: ${String.format(Locale.US, "%.4f", selectedCity.latitude)}° • Lon: ${String.format(Locale.US, "%.4f", selectedCity.longitude)}° (Hanafi • Karachi 18°)",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -443,8 +504,8 @@ fun HomeScreen(
                 QuickActionChip(
                     icon = Icons.Default.AutoStories,
                     title = "Duas & Azkar",
-                    subtitle = "Ayat-ul-Kursi",
-                    onClick = { viewModel.selectTab(NavigationTab.TOOLS) },
+                    subtitle = "Masnoon Adhkar",
+                    onClick = { viewModel.openDuasAndAzkar() },
                     modifier = Modifier.weight(1f).testTag("quick_action_duas")
                 )
             }

@@ -99,7 +99,7 @@ fun MasjidNetworkScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Crowdsourced Azan & Iqamah schedule network",
+                        text = "Crowdsourced Azan & Iqamah schedule across India & Neighbors",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

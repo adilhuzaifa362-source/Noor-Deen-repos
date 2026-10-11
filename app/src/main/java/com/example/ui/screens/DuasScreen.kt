@@ -108,6 +108,35 @@ fun DuaListView(
             .fillMaxSize()
             .testTag("duas_list_view")
     ) {
+        // Top Header with Back Navigation
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { viewModel.navigateBack() },
+                modifier = Modifier.testTag("duas_list_back_button")
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+            Spacer(modifier = Modifier.width(6.dp))
+            Column {
+                Text(
+                    text = "Duas & Azkar (الأدعية والأذكار)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Authentic Masnoon Duas from the Sunnah & Hisnul Muslim",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         // Search Field
         OutlinedTextField(
             value = searchQuery,

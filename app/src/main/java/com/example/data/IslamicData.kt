@@ -26,45 +26,115 @@ object IslamicData {
         Qari("muaiqly", "Sheikh Maher Al-Muaiqly", "Saudi Arabia", "Haramain Makkah")
     )
 
+    // Regional countries for South Asia and neighboring nations
+    val regionalCountries = listOf(
+        "India",
+        "Pakistan",
+        "Bangladesh",
+        "Afghanistan",
+        "Nepal",
+        "Sri Lanka",
+        "Maldives",
+        "Bhutan",
+        "Myanmar"
+    )
+
+    // Curated cities personalized exclusively for India and its neighboring countries
     val worldCities = listOf(
-        CityLocation("Makkah Al-Mukarramah", "Saudi Arabia", 21.4225, 39.8262, 3.0),
-        CityLocation("Madinah Al-Munawwarah", "Saudi Arabia", 24.5247, 39.5692, 3.0),
-        CityLocation("Jerusalem (Al-Quds)", "Palestine", 31.7683, 35.2137, 3.0),
-        CityLocation("Cairo", "Egypt", 30.0444, 31.2357, 2.0),
-        CityLocation("Istanbul", "Turkey", 41.0082, 28.9784, 3.0),
-        CityLocation("Karachi", "Pakistan", 24.8607, 67.0011, 5.0),
-        CityLocation("Lahore", "Pakistan", 31.5497, 74.3436, 5.0),
-        CityLocation("Delhi", "India", 28.6139, 77.2090, 5.5),
+        // India (Default Region)
+        CityLocation("Delhi (New Delhi)", "India", 28.6139, 77.2090, 5.5),
         CityLocation("Mumbai", "India", 19.0760, 72.8777, 5.5),
         CityLocation("Hyderabad", "India", 17.3850, 78.4867, 5.5),
+        CityLocation("Kolkata", "India", 22.5726, 88.3639, 5.5),
+        CityLocation("Bengaluru", "India", 12.9716, 77.5946, 5.5),
+        CityLocation("Chennai", "India", 13.0827, 80.2707, 5.5),
+        CityLocation("Lucknow", "India", 26.8467, 80.9462, 5.5),
+        CityLocation("Srinagar (Kashmir)", "India", 34.0837, 74.7973, 5.5),
+        CityLocation("Ahmedabad", "India", 23.0225, 72.5714, 5.5),
+        CityLocation("Patna", "India", 25.5941, 85.1376, 5.5),
+        CityLocation("Bhopal", "India", 23.2599, 77.4126, 5.5),
+        CityLocation("Kozhikode (Calicut)", "India", 11.2588, 75.7804, 5.5),
+        CityLocation("Jaipur", "India", 26.9124, 75.7873, 5.5),
+        CityLocation("Surat", "India", 21.1702, 72.8311, 5.5),
+        CityLocation("Deoband", "India", 29.6953, 77.6766, 5.5),
+        CityLocation("Aligarh", "India", 27.8974, 78.0880, 5.5),
+        CityLocation("Pune", "India", 18.5204, 73.8567, 5.5),
+        CityLocation("Guwahati (Assam)", "India", 26.1445, 91.7362, 5.5),
+        CityLocation("Ranchi", "India", 23.3441, 85.3096, 5.5),
+        CityLocation("Varanasi", "India", 25.3176, 82.9739, 5.5),
+
+        // Pakistan
+        CityLocation("Karachi", "Pakistan", 24.8607, 67.0011, 5.0),
+        CityLocation("Lahore", "Pakistan", 31.5497, 74.3436, 5.0),
+        CityLocation("Islamabad", "Pakistan", 33.6844, 73.0479, 5.0),
+        CityLocation("Rawalpindi", "Pakistan", 33.5651, 73.0169, 5.0),
+        CityLocation("Peshawar", "Pakistan", 34.0151, 71.5249, 5.0),
+        CityLocation("Quetta", "Pakistan", 30.1798, 66.9750, 5.0),
+        CityLocation("Multan", "Pakistan", 30.1575, 71.5249, 5.0),
+        CityLocation("Faisalabad", "Pakistan", 31.4504, 73.1350, 5.0),
+        CityLocation("Sialkot", "Pakistan", 32.4945, 74.5229, 5.0),
+
+        // Bangladesh
         CityLocation("Dhaka", "Bangladesh", 23.8103, 90.4125, 6.0),
-        CityLocation("Jakarta", "Indonesia", -6.2088, 106.8456, 7.0),
-        CityLocation("Kuala Lumpur", "Malaysia", 3.1390, 101.6869, 8.0),
-        CityLocation("Dubai", "United Arab Emirates", 25.2048, 55.2708, 4.0),
-        CityLocation("London", "United Kingdom", 51.5074, -0.1278, 0.0),
-        CityLocation("New York", "United States", 40.7128, -74.0060, -5.0),
-        CityLocation("Toronto", "Canada", 43.6532, -79.3832, -5.0),
-        CityLocation("Sydney", "Australia", -33.8688, 151.2093, 10.0)
+        CityLocation("Chittagong (Chattogram)", "Bangladesh", 22.3569, 91.7832, 6.0),
+        CityLocation("Sylhet", "Bangladesh", 24.8949, 91.8687, 6.0),
+        CityLocation("Rajshahi", "Bangladesh", 24.3636, 88.6241, 6.0),
+        CityLocation("Khulna", "Bangladesh", 22.8456, 89.5403, 6.0),
+        CityLocation("Cox's Bazar", "Bangladesh", 21.4272, 92.0058, 6.0),
+        CityLocation("Barisal", "Bangladesh", 22.7010, 90.3535, 6.0),
+
+        // Afghanistan
+        CityLocation("Kabul", "Afghanistan", 34.5553, 69.2075, 4.5),
+        CityLocation("Kandahar", "Afghanistan", 31.6289, 65.7372, 4.5),
+        CityLocation("Herat", "Afghanistan", 34.3529, 62.2040, 4.5),
+        CityLocation("Mazar-i-Sharif", "Afghanistan", 36.7061, 67.1123, 4.5),
+        CityLocation("Jalalabad", "Afghanistan", 34.4254, 70.4586, 4.5),
+
+        // Nepal
+        CityLocation("Kathmandu", "Nepal", 27.7172, 85.3240, 5.75),
+        CityLocation("Birgunj", "Nepal", 27.0128, 84.8774, 5.75),
+        CityLocation("Nepalgunj", "Nepal", 28.0500, 81.6167, 5.75),
+        CityLocation("Pokhara", "Nepal", 28.2096, 83.9856, 5.75),
+
+        // Sri Lanka
+        CityLocation("Colombo", "Sri Lanka", 6.9271, 79.8612, 5.5),
+        CityLocation("Kandy", "Sri Lanka", 7.2906, 80.6337, 5.5),
+        CityLocation("Galle", "Sri Lanka", 6.0535, 80.2210, 5.5),
+        CityLocation("Beruwala", "Sri Lanka", 6.4789, 79.9828, 5.5),
+
+        // Maldives
+        CityLocation("Malé", "Maldives", 4.1755, 73.5093, 5.0),
+        CityLocation("Addu City", "Maldives", -0.6304, 73.1583, 5.0),
+
+        // Bhutan
+        CityLocation("Thimphu", "Bhutan", 27.4728, 89.6393, 6.0),
+        CityLocation("Phuntsholing", "Bhutan", 26.8523, 89.3842, 6.0),
+
+        // Myanmar
+        CityLocation("Yangon", "Myanmar", 16.8661, 96.1951, 6.5),
+        CityLocation("Mandalay", "Myanmar", 21.9588, 96.0891, 6.5),
+        CityLocation("Sittwe (Rakhine)", "Myanmar", 20.1462, 92.8984, 6.5),
+        CityLocation("Mawlamyine", "Myanmar", 16.4905, 97.6283, 6.5)
     )
 
     val sampleMasjids = listOf(
         MasjidJamaat(
             id = "m1",
-            name = "Masjid Al-Noor (Central)",
-            distanceKm = 0.4,
-            address = "Main Boulevard, Block 4",
+            name = "Jama Masjid (Delhi)",
+            distanceKm = 0.5,
+            address = "Chandni Chowk, Old Delhi, India",
             fajrAzan = "05:00", fajrJamaat = "05:25",
             dhuhrAzan = "12:30", dhuhrJamaat = "12:50",
             asrAzan = "16:15", asrJamaat = "16:30",
             maghribAzan = "18:22", maghribJamaat = "18:27",
             ishaAzan = "19:45", ishaJamaat = "20:05",
-            lastVerifiedBy = "Imam Hafiz Tariq (Verified Today)"
+            lastVerifiedBy = "Imam Bukhari Office (Verified Today)"
         ),
         MasjidJamaat(
             id = "m2",
-            name = "Jamea Masjid Bilal",
-            distanceKm = 1.1,
-            address = "Garden Road, Market Area",
+            name = "Charminar Mecca Masjid (Hyderabad)",
+            distanceKm = 1.2,
+            address = "Near Charminar, Hyderabad, India",
             fajrAzan = "05:05", fajrJamaat = "05:30",
             dhuhrAzan = "12:30", dhuhrJamaat = "13:00",
             asrAzan = "16:20", asrJamaat = "16:35",
@@ -74,15 +144,51 @@ object IslamicData {
         ),
         MasjidJamaat(
             id = "m3",
-            name = "Masjid Quba Community Center",
-            distanceKm = 2.3,
-            address = "Sector 7, University Road",
+            name = "Taj-ul-Masajid (Bhopal)",
+            distanceKm = 2.0,
+            address = "Kohefiza, Bhopal, India",
             fajrAzan = "05:00", fajrJamaat = "05:20",
             dhuhrAzan = "12:30", dhuhrJamaat = "12:45",
             asrAzan = "16:15", asrJamaat = "16:30",
             maghribAzan = "18:22", maghribJamaat = "18:26",
             ishaAzan = "19:40", ishaJamaat = "20:00",
-            lastVerifiedBy = "Br. Salman - Volunteer (Verified Yesterday)"
+            lastVerifiedBy = "Darul Uloom Taj-ul-Masajid (Verified Yesterday)"
+        ),
+        MasjidJamaat(
+            id = "m4",
+            name = "Badshahi Mosque (Lahore)",
+            distanceKm = 1.8,
+            address = "Walled City, Lahore, Pakistan",
+            fajrAzan = "05:05", fajrJamaat = "05:30",
+            dhuhrAzan = "12:30", dhuhrJamaat = "13:00",
+            asrAzan = "16:20", asrJamaat = "16:35",
+            maghribAzan = "18:20", maghribJamaat = "18:25",
+            ishaAzan = "19:50", ishaJamaat = "20:15",
+            lastVerifiedBy = "Auqaf Department (Verified Today)"
+        ),
+        MasjidJamaat(
+            id = "m5",
+            name = "Baitul Mukarram National Mosque (Dhaka)",
+            distanceKm = 1.5,
+            address = "Paltan, Dhaka, Bangladesh",
+            fajrAzan = "04:55", fajrJamaat = "05:20",
+            dhuhrAzan = "12:15", dhuhrJamaat = "12:45",
+            asrAzan = "16:10", asrJamaat = "16:25",
+            maghribAzan = "18:15", maghribJamaat = "18:20",
+            ishaAzan = "19:40", ishaJamaat = "20:00",
+            lastVerifiedBy = "Islamic Foundation Bangladesh"
+        ),
+        MasjidJamaat(
+            id = "m6",
+            name = "Jami Ul-Alfar Red Mosque (Colombo)",
+            distanceKm = 2.4,
+            address = "Pettah, Colombo, Sri Lanka",
+            fajrAzan = "05:00", fajrJamaat = "05:25",
+            dhuhrAzan = "12:20", dhuhrJamaat = "12:45",
+            asrAzan = "16:15", asrJamaat = "16:30",
+            maghribAzan = "18:18", maghribJamaat = "18:23",
+            ishaAzan = "19:35", ishaJamaat = "19:55",
+            lastVerifiedBy = "Trustee Board (Verified Today)"
         )
     )
 

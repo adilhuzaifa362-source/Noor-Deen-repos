@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Fingerprint
@@ -58,6 +59,8 @@ fun ToolsScreen(
         SubScreen.RAMADAN_KHATAM -> RamadanKhatamScreen(viewModel = viewModel, modifier = modifier)
         SubScreen.DIGITAL_TASBEEH -> DigitalTasbeehScreen(viewModel = viewModel, modifier = modifier)
         SubScreen.HIJRI_CALENDAR -> HijriCalendarScreen(viewModel = viewModel, modifier = modifier)
+        SubScreen.DUAS_AND_AZKAR -> DuasScreen(viewModel = viewModel, modifier = modifier)
+        SubScreen.DUA_DETAIL -> DuasScreen(viewModel = viewModel, modifier = modifier)
         else -> ToolsMenuListView(viewModel = viewModel, modifier = modifier)
     }
 }
@@ -104,6 +107,28 @@ fun ToolsMenuListView(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
+            item {
+                ToolMenuCard(
+                    title = "Duas & Azkar (حصن المسلم)",
+                    subtitle = "Authentic Masnoon Duas, Morning & Evening Adhkar, Wazifas",
+                    arabicTitle = "الأدعية والأذكار",
+                    icon = Icons.Default.AutoStories,
+                    tag = "tool_duas_azkar",
+                    onClick = { viewModel.openDuasAndAzkar() }
+                )
+            }
+
+            item {
+                ToolMenuCard(
+                    title = "Digital Tasbeeh Counter",
+                    subtitle = "Haptic feedback beads with Sunnah Dhikr target limits",
+                    arabicTitle = "المسبحة الإلكترونية",
+                    icon = Icons.Default.Fingerprint,
+                    tag = "tool_digital_tasbeeh_top",
+                    onClick = { viewModel.openSubScreen(SubScreen.DIGITAL_TASBEEH) }
+                )
+            }
+
             item {
                 ToolMenuCard(
                     title = "Noor Deen AI Scholar",

@@ -50,6 +50,7 @@ enum class NavigationTab {
 enum class SubScreen {
     SURAH_READER,
     DUA_DETAIL,
+    DUAS_AND_AZKAR,
     QIBLA_COMPASS,
     MASJID_NETWORK,
     ZAKAT_CALCULATOR,
@@ -136,7 +137,7 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     private val _selectedCity = MutableStateFlow(IslamicData.worldCities.first())
     val selectedCity: StateFlow<CityLocation> = _selectedCity.asStateFlow()
 
-    private val _calculationMethod = MutableStateFlow(CalculationMethod.MWL)
+    private val _calculationMethod = MutableStateFlow(CalculationMethod.KARACHI)
     val calculationMethod: StateFlow<CalculationMethod> = _calculationMethod.asStateFlow()
 
     private val _juristicMethod = MutableStateFlow(JuristicMethod.HANAFI)
@@ -251,7 +252,7 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     private val _completedFasts = MutableStateFlow<Set<Int>>((1..12).toSet())
     val completedFasts: StateFlow<Set<Int>> = _completedFasts.asStateFlow()
 
-    // Digital Tasbeeh
+    // Digital Tasbeeh & Daily Zikr Tracking
     private val _tasbeehCount = MutableStateFlow(0)
     val tasbeehCount: StateFlow<Int> = _tasbeehCount.asStateFlow()
 
@@ -263,6 +264,25 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
 
     private val _tasbeehTotalCycles = MutableStateFlow(14)
     val tasbeehTotalCycles: StateFlow<Int> = _tasbeehTotalCycles.asStateFlow()
+
+    private val _tasbeehDailyTotal = MutableStateFlow(165)
+    val tasbeehDailyTotal: StateFlow<Int> = _tasbeehDailyTotal.asStateFlow()
+
+    private val _tasbeehHapticEnabled = MutableStateFlow(true)
+    val tasbeehHapticEnabled: StateFlow<Boolean> = _tasbeehHapticEnabled.asStateFlow()
+
+    private val _tasbeehSoundEnabled = MutableStateFlow(true)
+    val tasbeehSoundEnabled: StateFlow<Boolean> = _tasbeehSoundEnabled.asStateFlow()
+
+    private val _tasbeehBreakdown = MutableStateFlow<Map<String, Int>>(
+        mapOf(
+            "SubhanAllah" to 66,
+            "Alhamdulillah" to 33,
+            "Allahu Akbar" to 33,
+            "Astaghfirullah" to 33
+        )
+    )
+    val tasbeehBreakdown: StateFlow<Map<String, Int>> = _tasbeehBreakdown.asStateFlow()
 
     init {
         updatePrayerTimes()
@@ -285,8 +305,14 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
         _currentSubScreen.value = subScreen
     }
 
+    fun openDuasAndAzkar() {
+        _currentSubScreen.value = SubScreen.DUAS_AND_AZKAR
+    }
+
     fun navigateBack() {
-        if (_currentSubScreen.value != null) {
+        if (_currentSubScreen.value == SubScreen.DUA_DETAIL) {
+            _currentSubScreen.value = SubScreen.DUAS_AND_AZKAR
+        } else if (_currentSubScreen.value != null) {
             _currentSubScreen.value = null
         }
     }
@@ -524,7 +550,7 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
         countryName: String,
         latitude: Double,
         longitude: Double,
-        calcMethod: CalculationMethod = CalculationMethod.MWL,
+        calcMethod: CalculationMethod = CalculationMethod.KARACHI,
         juristicMethod: JuristicMethod = JuristicMethod.HANAFI
     ) {
         val newCity = CityLocation(
@@ -762,22 +788,63 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
         pagesRead.value = pages.coerceIn(0, totalQuranPages)
     }
 
-    // Digital Tasbeeh Actions
+    // Digital Tasbeeh & Daily Zikr Actions
     fun incrementTasbeeh() {
         val next = _tasbeehCount.value + 1
         val target = _tasbeehTarget.value
-        vibrate(35)
+        val preset = _selectedDhikrPreset.value
+
+        _tasbeehDailyTotal.value += 1
+        val currentPresetCount = _tasbeehBreakdown.value[preset] ?: 0
+        _tasbeehBreakdown.value = _tasbeehBreakdown.value + (preset to currentPresetCount + 1)
+
+        if (_tasbeehHapticEnabled.value) {
+            vibrate(35)
+        }
+
         if (target > 0 && next >= target) {
             _tasbeehCount.value = 0
             _tasbeehTotalCycles.value += 1
-            vibrate(180)
+            if (_tasbeehHapticEnabled.value) {
+                vibrate(180)
+            }
         } else {
             _tasbeehCount.value = next
         }
     }
 
+    fun decrementTasbeeh() {
+        if (_tasbeehCount.value > 0) {
+            _tasbeehCount.value -= 1
+            if (_tasbeehDailyTotal.value > 0) {
+                _tasbeehDailyTotal.value -= 1
+            }
+            if (_tasbeehHapticEnabled.value) {
+                vibrate(25)
+            }
+        }
+    }
+
     fun resetTasbeeh() {
         _tasbeehCount.value = 0
+        if (_tasbeehHapticEnabled.value) {
+            vibrate(40)
+        }
+    }
+
+    fun resetAllTasbeehDaily() {
+        _tasbeehCount.value = 0
+        _tasbeehDailyTotal.value = 0
+        _tasbeehTotalCycles.value = 0
+        _tasbeehBreakdown.value = emptyMap()
+    }
+
+    fun toggleTasbeehHaptic() {
+        _tasbeehHapticEnabled.value = !_tasbeehHapticEnabled.value
+    }
+
+    fun toggleTasbeehSound() {
+        _tasbeehSoundEnabled.value = !_tasbeehSoundEnabled.value
     }
 
     fun setTasbeehTarget(target: Int) {

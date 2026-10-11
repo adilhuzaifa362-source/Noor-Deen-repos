@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.Mosque
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
@@ -37,10 +39,13 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import com.example.ui.components.AddCustomCityDialog
@@ -101,6 +106,8 @@ fun PrayerTimesMainView(
     var showCityDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var showAddCustomCityDialog by remember { mutableStateOf(false) }
+    var selectedCountryFilter by remember { mutableStateOf<String?>(null) }
+    var citySearchQuery by remember { mutableStateOf("") }
 
     val nextPrayer = prayerTimes.firstOrNull { it.isNext } ?: prayerTimes.firstOrNull()
 
@@ -320,11 +327,22 @@ fun PrayerTimesMainView(
         }
     }
 
-    // City Selection Dialog
+    // City Selection Dialog (Personalized for India & Neighbors)
     if (showCityDialog) {
+        val filteredCities = IslamicData.worldCities.filter { city ->
+            val matchesCountry = selectedCountryFilter == null || city.country.equals(selectedCountryFilter, ignoreCase = true)
+            val matchesQuery = citySearchQuery.isBlank() || city.name.contains(citySearchQuery, ignoreCase = true) || city.country.contains(citySearchQuery, ignoreCase = true)
+            matchesCountry && matchesQuery
+        }
+
         AlertDialog(
             onDismissRequest = { showCityDialog = false },
-            title = { Text("Select City (المدينة)", style = MaterialTheme.typography.titleMedium) },
+            title = {
+                Column {
+                    Text("Select City (المدينة)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Personalized for India & Neighboring Countries", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
+            },
             text = {
                 Column {
                     OutlinedButton(
@@ -334,7 +352,7 @@ fun PrayerTimesMainView(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 8.dp)
+                            .padding(bottom = 6.dp)
                             .testTag("prayer_add_custom_city_button")
                     ) {
                         Icon(Icons.Default.LocationOn, contentDescription = "Add Coordinates", modifier = Modifier.size(16.dp))
@@ -342,49 +360,93 @@ fun PrayerTimesMainView(
                         Text("Add Custom Coordinates (Lat/Long)")
                     }
 
-                    LazyColumn(modifier = Modifier.height(280.dp)) {
-                        items(IslamicData.worldCities) { city ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    viewModel.setCity(city)
-                                    showCityDialog = false
-                                }
-                                .padding(vertical = 8.dp, horizontal = 4.dp)
-                        ) {
-                            RadioButton(
-                                selected = city.name == selectedCity.name,
-                                onClick = {
-                                    viewModel.setCity(city)
-                                    showCityDialog = false
-                                }
+                    // Regional Country Filter Chips
+                    val regionalCountriesWithAll = listOf(
+                        Pair(null, "All Regions"),
+                        Pair("India", "India 🇮🇳"),
+                        Pair("Pakistan", "Pakistan 🇵🇰"),
+                        Pair("Bangladesh", "Bangladesh 🇧🇩"),
+                        Pair("Afghanistan", "Afghanistan 🇦🇫"),
+                        Pair("Nepal", "Nepal 🇳🇵"),
+                        Pair("Sri Lanka", "Sri Lanka 🇱🇰"),
+                        Pair("Maldives", "Maldives 🇲🇻"),
+                        Pair("Bhutan", "Bhutan 🇧🇹"),
+                        Pair("Myanmar", "Myanmar 🇲🇲")
+                    )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    ) {
+                        items(regionalCountriesWithAll) { (countryCode, label) ->
+                            val isSelected = selectedCountryFilter == countryCode
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedCountryFilter = countryCode },
+                                label = { Text(label, fontSize = 11.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.primary
+                                )
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = city.name,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
+                        }
+                    }
+
+                    // City Search Bar
+                    OutlinedTextField(
+                        value = citySearchQuery,
+                        onValueChange = { citySearchQuery = it },
+                        placeholder = { Text("Search city (Delhi, Karachi, Dhaka...)", fontSize = 12.sp) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", modifier = Modifier.size(16.dp)) },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 6.dp),
+                        shape = RoundedCornerShape(8.dp)
+                    )
+
+                    LazyColumn(modifier = Modifier.height(240.dp)) {
+                        items(filteredCities) { city ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        viewModel.setCity(city)
+                                        showCityDialog = false
+                                    }
+                                    .padding(vertical = 6.dp, horizontal = 4.dp)
+                            ) {
+                                RadioButton(
+                                    selected = city.name == selectedCity.name,
+                                    onClick = {
+                                        viewModel.setCity(city)
+                                        showCityDialog = false
+                                    }
                                 )
-                                Text(
-                                    text = "${city.country} • Lat: ${city.latitude}, Lon: ${city.longitude}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(
+                                        text = city.name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    Text(
+                                        text = "${city.country} • Lat: ${city.latitude}, Lon: ${city.longitude}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
                 }
+            },
+            confirmButton = {
+                TextButton(onClick = { showCityDialog = false }) { Text("Close") }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { showCityDialog = false }) { Text("Close") }
-        }
-    )
-}
+        )
+    }
 
     // Settings Dialog
     if (showSettingsDialog) {

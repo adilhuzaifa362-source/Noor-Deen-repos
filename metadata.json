@@ -1,6 +1,6 @@
 {
   "name": "Noor Deen",
-  "description": "Authentic, non-profit, ad-free Islamic app with Quran, Hadith, Prayer Times, Qibla, Duas & Tools in 4 languages.",
+  "description": "Authentic Islamic app personalized for India and all neighboring countries with Hanafi prayer timings, Quran reader with Tajweed, Sahih Sitta Hadith repository, and Qibla compass.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

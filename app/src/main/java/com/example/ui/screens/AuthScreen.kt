@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -30,6 +32,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -78,14 +82,14 @@ fun AuthScreen(
     var passwordInput by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // Sign Up Fields
+    // Sign Up Fields (Personalized for India & Subcontinent region)
     var signupName by remember { mutableStateOf("") }
     var signupEmail by remember { mutableStateOf("") }
     var signupPassword by remember { mutableStateOf("") }
-    var signupCity by remember { mutableStateOf("Makkah") }
-    var signupCountry by remember { mutableStateOf("Saudi Arabia") }
-    var signupLat by remember { mutableStateOf("21.4225") }
-    var signupLon by remember { mutableStateOf("39.8262") }
+    var signupCity by remember { mutableStateOf("Delhi (New Delhi)") }
+    var signupCountry by remember { mutableStateOf("India") }
+    var signupLat by remember { mutableStateOf("28.6139") }
+    var signupLon by remember { mutableStateOf("77.2090") }
 
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
     var showAddCustomCityDialog by remember { mutableStateOf(false) }
@@ -441,6 +445,44 @@ fun AuthScreen(
                                 Icon(Icons.Default.MyLocation, contentDescription = "GPS", modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Auto-Detect My GPS Coordinates")
+                            }
+
+                            // Quick Regional Country Selector (India & Neighbors)
+                            Text(
+                                text = "Select Country (India & Neighbors):",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            val subcontinentPresets = listOf(
+                                Triple("India", "Delhi (New Delhi)", Pair("28.6139", "77.2090")),
+                                Triple("Pakistan", "Karachi", Pair("24.8607", "67.0011")),
+                                Triple("Bangladesh", "Dhaka", Pair("23.8103", "90.4125")),
+                                Triple("Afghanistan", "Kabul", Pair("34.5553", "69.2075")),
+                                Triple("Nepal", "Kathmandu", Pair("27.7172", "85.3240")),
+                                Triple("Sri Lanka", "Colombo", Pair("6.9271", "79.8612")),
+                                Triple("Maldives", "Malé", Pair("4.1755", "73.5093")),
+                                Triple("Bhutan", "Thimphu", Pair("27.4728", "89.6393")),
+                                Triple("Myanmar", "Yangon", Pair("16.8661", "96.1951"))
+                            )
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                items(subcontinentPresets) { (cName, defaultCity, coords) ->
+                                    val isSelected = signupCountry.equals(cName, ignoreCase = true)
+                                    FilterChip(
+                                        selected = isSelected,
+                                        onClick = {
+                                            signupCountry = cName
+                                            signupCity = defaultCity
+                                            signupLat = coords.first
+                                            signupLon = coords.second
+                                        },
+                                        label = { Text(cName, fontSize = 11.sp) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                }
                             }
 
                             // City & Country

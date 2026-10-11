@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -22,6 +24,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -55,11 +59,11 @@ fun AddCustomCityDialog(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var cityName by remember { mutableStateOf("") }
-    var countryName by remember { mutableStateOf("") }
-    var latText by remember { mutableStateOf("") }
-    var lonText by remember { mutableStateOf("") }
-    var selectedCalcMethod by remember { mutableStateOf(CalculationMethod.MWL) }
+    var cityName by remember { mutableStateOf("Delhi (New Delhi)") }
+    var countryName by remember { mutableStateOf("India") }
+    var latText by remember { mutableStateOf("28.6139") }
+    var lonText by remember { mutableStateOf("77.2090") }
+    var selectedCalcMethod by remember { mutableStateOf(CalculationMethod.KARACHI) }
     var selectedJuristicMethod by remember { mutableStateOf(JuristicMethod.HANAFI) } // Defaults to Hanafi per user request
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isDetectingLocation by remember { mutableStateOf(false) }
@@ -138,12 +142,51 @@ fun AddCustomCityDialog(
                     Text(if (isDetectingLocation) "Detecting GPS..." else "Auto-Fill My GPS Coordinates")
                 }
 
+                // Quick Regional Country Selector (India & Neighbors)
+                Text(
+                    text = "Quick Subcontinent Preset (India & Neighbors):",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                val subcontinentPresets = listOf(
+                    Triple("India", "Delhi (New Delhi)", Pair("28.6139", "77.2090")),
+                    Triple("Pakistan", "Karachi", Pair("24.8607", "67.0011")),
+                    Triple("Bangladesh", "Dhaka", Pair("23.8103", "90.4125")),
+                    Triple("Afghanistan", "Kabul", Pair("34.5553", "69.2075")),
+                    Triple("Nepal", "Kathmandu", Pair("27.7172", "85.3240")),
+                    Triple("Sri Lanka", "Colombo", Pair("6.9271", "79.8612")),
+                    Triple("Maldives", "Malé", Pair("4.1755", "73.5093")),
+                    Triple("Bhutan", "Thimphu", Pair("27.4728", "89.6393")),
+                    Triple("Myanmar", "Yangon", Pair("16.8661", "96.1951"))
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(subcontinentPresets) { (cName, defaultCity, coords) ->
+                        val isSelected = countryName.equals(cName, ignoreCase = true)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                countryName = cName
+                                cityName = defaultCity
+                                latText = coords.first
+                                lonText = coords.second
+                                errorMessage = null
+                            },
+                            label = { Text(cName, fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    }
+                }
+
                 // City & Country Inputs
                 OutlinedTextField(
                     value = cityName,
                     onValueChange = { cityName = it; errorMessage = null },
                     label = { Text("City Name *") },
-                    placeholder = { Text("e.g. Chicago, Birmingham, Lahore") },
+                    placeholder = { Text("e.g. Delhi, Hyderabad, Dhaka, Kabul") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth().testTag("custom_city_name_input"),
                     shape = RoundedCornerShape(10.dp)

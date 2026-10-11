@@ -102,6 +102,7 @@ fun NoorDeenApp(
                         SubScreen.ASMA_UL_HUSNA -> AsmaUlHusnaScreen(viewModel = viewModel)
                         SubScreen.RAMADAN_KHATAM -> RamadanKhatamScreen(viewModel = viewModel)
                         SubScreen.HIJRI_CALENDAR -> HijriCalendarScreen(viewModel = viewModel)
+                        SubScreen.DUAS_AND_AZKAR -> DuasScreen(viewModel = viewModel)
                         SubScreen.DUA_DETAIL -> DuasScreen(viewModel = viewModel)
                         SubScreen.SURAH_READER -> QuranScreen(viewModel = viewModel)
                         null -> Unit
