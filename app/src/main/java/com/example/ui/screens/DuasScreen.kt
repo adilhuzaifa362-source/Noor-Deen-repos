@@ -24,9 +24,17 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.material.icons.filled.Stop
+import com.example.model.AudioPlaybackStatus
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TouchApp
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -87,6 +95,8 @@ fun DuaListView(
     val supplicationCounts by viewModel.supplicationCounts.collectAsState()
     val bookmarkedIds by viewModel.bookmarkedDuaIds.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val activeTrack by viewModel.activeAudioTrack.collectAsState()
+    val audioStatus by viewModel.audioPlaybackStatus.collectAsState()
 
     val filteredDuas = remember(selectedCategory, searchQuery) {
         IslamicData.supplications.filter { dua ->
@@ -241,11 +251,48 @@ fun DuaListView(
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { viewModel.toggleBookmarkDua(dua.id) }) {
+                                val isThisDuaPlaying = (audioStatus == AudioPlaybackStatus.PLAYING || audioStatus == AudioPlaybackStatus.BUFFERING) &&
+                                    (activeTrack?.id == "dua_${dua.id}" || (activeTrack?.isTts == true && activeTrack?.title == dua.titleEn))
+
+                                IconButton(
+                                    onClick = {
+                                        if (isThisDuaPlaying) {
+                                            viewModel.pauseAudio()
+                                        } else {
+                                            viewModel.playDuaAudio(dua)
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp).testTag("play_dua_audio_${dua.id}")
+                                ) {
+                                    Icon(
+                                        imageVector = if (isThisDuaPlaying) Icons.Default.Pause else Icons.Default.VolumeUp,
+                                        contentDescription = "Listen Arabic",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { viewModel.playDuaTranslationTts(dua, currentLanguage) },
+                                    modifier = Modifier.size(32.dp).testTag("speak_dua_translation_${dua.id}")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.RecordVoiceOver,
+                                        contentDescription = "Listen Translation Voice",
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { viewModel.toggleBookmarkDua(dua.id) },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
                                     Icon(
                                         imageVector = if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
                                         contentDescription = "Bookmark",
-                                        tint = if (isBookmarked) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline
+                                        tint = if (isBookmarked) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
                             }
@@ -356,15 +403,20 @@ fun DuaDetailReaderView(
     viewModel: NoorDeenViewModel,
     modifier: Modifier = Modifier
 ) {
-    val dua = viewModel.selectedDua.collectAsState().value ?: return
+    val selectedDuaState by viewModel.selectedDua.collectAsState()
+    val dua = selectedDuaState ?: IslamicData.supplications.first()
     val supplicationCounts by viewModel.supplicationCounts.collectAsState()
     val bookmarkedIds by viewModel.bookmarkedDuaIds.collectAsState()
     val isTajweedEnabled by viewModel.isTajweedEnabled.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val activeTrack by viewModel.activeAudioTrack.collectAsState()
+    val audioStatus by viewModel.audioPlaybackStatus.collectAsState()
 
     val count = supplicationCounts[dua.id] ?: 0
     val isBookmarked = bookmarkedIds.contains(dua.id)
     val isCompleted = count >= dua.targetCount
+    val isThisDuaPlaying = (audioStatus == AudioPlaybackStatus.PLAYING || audioStatus == AudioPlaybackStatus.BUFFERING) &&
+        (activeTrack?.id == "dua_${dua.id}" || (activeTrack?.isTts == true && activeTrack?.title == dua.titleEn))
 
     Column(
         modifier = modifier
@@ -412,6 +464,102 @@ fun DuaDetailReaderView(
                         contentDescription = "Bookmark",
                         tint = if (isBookmarked) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outline
                     )
+                }
+            }
+        }
+
+        // In-page Audio Player Bar for Dua Recitation & Translation Speech
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .testTag("dua_inpage_audio_player"),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+            )
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (isThisDuaPlaying) {
+                                        viewModel.pauseAudio()
+                                    } else {
+                                        viewModel.playDuaAudio(dua)
+                                    }
+                                },
+                                modifier = Modifier.testTag("dua_detail_play_arabic_button")
+                            ) {
+                                Icon(
+                                    imageVector = if (isThisDuaPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = "Play Arabic Recitation",
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = if (isThisDuaPlaying) "Streaming Arabic Recitation" else "Arabic Recitation",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = if (dua.audioUrl != null) "Authentic Qari Recitation (EveryAyah)" else "Sunnah Phonetic Pronunciation",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    // Multilingual Translation TTS Voice Button
+                    Button(
+                        onClick = { viewModel.playDuaTranslationTts(dua, currentLanguage) },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.testTag("dua_detail_listen_translation_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.RecordVoiceOver,
+                            contentDescription = "Listen Translation Voice",
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        val langLabel = when (currentLanguage) {
+                            AppLanguage.URDU -> "اردو"
+                            AppLanguage.HINDI -> "हिंदी"
+                            else -> "English"
+                        }
+                        Text(
+                            text = "Voice ($langLabel)",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }

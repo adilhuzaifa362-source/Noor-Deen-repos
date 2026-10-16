@@ -65,7 +65,36 @@ data class Qari(
     val id: String,
     val name: String,
     val country: String,
-    val style: String
+    val style: String,
+    val folderName: String = "Alafasy_128kbps"
+)
+
+enum class AudioPlaybackStatus {
+    IDLE,
+    BUFFERING,
+    PLAYING,
+    PAUSED,
+    ERROR
+}
+
+enum class AudioSourceType {
+    QURAN_AYAH,
+    QURAN_SURAH,
+    DUA,
+    HADITH
+}
+
+data class ActiveAudioTrack(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val type: AudioSourceType,
+    val surahNumber: Int = 1,
+    val ayahNumber: Int = 1,
+    val totalAyahs: Int = 1,
+    val audioUrl: String = "",
+    val textToSpeak: String = "",
+    val isTts: Boolean = false
 )
 
 enum class HadithTopic(val displayNameEn: String, val displayNameUr: String, val displayNameHi: String, val displayNameAr: String) {
@@ -89,8 +118,9 @@ data class Hadith(
     val matnArabic: String,
     val matnEn: String,
     val matnUr: String,
-    val matnHi: String,
-    val semanticKeywords: List<String> = emptyList()
+    val matnHi: String = "",
+    val semanticKeywords: List<String> = emptyList(),
+    val audioUrl: String? = null
 )
 
 enum class ChatSender {
@@ -131,7 +161,8 @@ data class Supplication(
     val reference: String,
     val targetCount: Int = 1,
     val currentCount: Int = 0,
-    val tajweedSpans: List<TajweedSpan> = emptyList()
+    val tajweedSpans: List<TajweedSpan> = emptyList(),
+    val audioUrl: String? = null
 )
 
 data class PrayerTime(

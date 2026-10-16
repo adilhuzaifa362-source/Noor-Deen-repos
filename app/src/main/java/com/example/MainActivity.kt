@@ -43,6 +43,7 @@ import com.example.viewmodel.SubScreen
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.example.service.AudioPlaybackManager.initialize(this)
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {

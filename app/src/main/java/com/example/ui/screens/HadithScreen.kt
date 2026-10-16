@@ -26,6 +26,11 @@ import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import com.example.model.AudioPlaybackStatus
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material3.AlertDialog
@@ -80,6 +85,8 @@ fun HadithScreen(
     val searchQuery by viewModel.hadithSearchQuery.collectAsState()
     val filteredHadiths by viewModel.filteredHadiths.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
+    val activeTrack by viewModel.activeAudioTrack.collectAsState()
+    val audioStatus by viewModel.audioPlaybackStatus.collectAsState()
 
     var activeDisplayLang by remember { mutableStateOf(currentLanguage) }
     var selectedHadithDetail by remember { mutableStateOf<Hadith?>(null) }
@@ -413,9 +420,19 @@ fun HadithScreen(
             }
 
             items(filteredHadiths) { hadith ->
+                val isThisHadithPlaying = (audioStatus == AudioPlaybackStatus.PLAYING || audioStatus == AudioPlaybackStatus.BUFFERING) &&
+                    (activeTrack?.id == "hadith_${hadith.id}" || (activeTrack?.isTts == true && activeTrack?.title?.contains(hadith.hadithNumber) == true))
+
                 HadithCard(
                     hadith = hadith,
                     activeLang = activeDisplayLang,
+                    isPlaying = isThisHadithPlaying,
+                    onPlayArabic = {
+                        if (isThisHadithPlaying) viewModel.pauseAudio() else viewModel.playHadithAudio(hadith, playArabic = true)
+                    },
+                    onPlayTranslation = {
+                        viewModel.playHadithAudio(hadith, playArabic = false)
+                    },
                     onClick = { selectedHadithDetail = hadith }
                 )
             }
@@ -466,6 +483,72 @@ fun HadithScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item {
+                        val isDetailPlaying = (audioStatus == AudioPlaybackStatus.PLAYING || audioStatus == AudioPlaybackStatus.BUFFERING) &&
+                            (activeTrack?.id == "hadith_${h.id}" || (activeTrack?.isTts == true && activeTrack?.title?.contains(h.hadithNumber) == true))
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth().testTag("hadith_dialog_audio_bar"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        IconButton(
+                                            onClick = {
+                                                if (isDetailPlaying) viewModel.pauseAudio() else viewModel.playHadithAudio(h, playArabic = true)
+                                            },
+                                            modifier = Modifier.testTag("hadith_dialog_play_arabic")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isDetailPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                contentDescription = "Play Arabic Narration",
+                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column {
+                                        Text(
+                                            text = if (isDetailPlaying) "Streaming Audio" else "Arabic Narration",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Text(
+                                            text = "Authentic Islamic Audio",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { viewModel.playHadithAudio(h, playArabic = false) },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.secondary
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    modifier = Modifier.testTag("hadith_dialog_play_translation")
+                                ) {
+                                    Icon(Icons.Default.RecordVoiceOver, contentDescription = "Voice", tint = Color.White, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Voice (${activeDisplayLang.code.uppercase()})", style = MaterialTheme.typography.labelSmall, color = Color.White)
+                                }
+                            }
+                        }
+                    }
+
                     item {
                         // Sanad Chain
                         Surface(
@@ -555,6 +638,9 @@ fun HadithScreen(
 private fun HadithCard(
     hadith: Hadith,
     activeLang: AppLanguage,
+    isPlaying: Boolean = false,
+    onPlayArabic: () -> Unit = {},
+    onPlayTranslation: () -> Unit = {},
     onClick: () -> Unit
 ) {
     Card(
@@ -642,7 +728,7 @@ private fun HadithCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Footer with Narrator & Chapter
+            // Footer with Narrator, Audio Play Buttons & Read Action
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -654,12 +740,43 @@ private fun HadithCard(
                     color = MaterialTheme.colorScheme.outline
                 )
 
-                Text(
-                    text = "View Narration →",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onPlayArabic,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .testTag("play_hadith_arabic_${hadith.id}")
+                    ) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.VolumeUp,
+                            contentDescription = "Listen Arabic Narration",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onPlayTranslation,
+                        modifier = Modifier
+                            .size(30.dp)
+                            .testTag("play_hadith_translation_${hadith.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.RecordVoiceOver,
+                            contentDescription = "Listen Translation",
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Read →",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

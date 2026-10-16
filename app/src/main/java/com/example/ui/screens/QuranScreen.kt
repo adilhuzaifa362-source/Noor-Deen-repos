@@ -26,6 +26,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.ViewAgenda
@@ -382,6 +384,10 @@ fun SurahReaderView(
     val selectedQari by viewModel.selectedQari.collectAsState()
     val currentLanguage by viewModel.currentLanguage.collectAsState()
     val selectedAyahIndex by viewModel.selectedAyahIndex.collectAsState()
+    val audioStatus by viewModel.audioPlaybackStatus.collectAsState()
+    val isAudioLooping by viewModel.isAudioLooping.collectAsState()
+    val elapsedMs by viewModel.audioPositionMs.collectAsState()
+    val durationMs by viewModel.audioDurationMs.collectAsState()
 
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -391,6 +397,13 @@ fun SurahReaderView(
     var readerTranslationMode by remember { mutableStateOf("DEFAULT") } // "DEFAULT", "EN", "UR", "HI", "ALL", "AR_ONLY"
 
     val verses = if (surah.verses.isNotEmpty()) surah.verses else IslamicData.fatihaVerses
+
+    androidx.compose.runtime.LaunchedEffect(currentAyah) {
+        if (isPlayingAudio && currentAyah > 0) {
+            val target = currentAyah.coerceAtMost(verses.size)
+            listState.animateScrollToItem(target)
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize().testTag("surah_reader_view")) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -696,12 +709,36 @@ fun SurahReaderView(
                             ) {
                                 // Left: Translation
                                 Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                                    Text(
-                                        text = "Ayah ${verse.ayahNumber}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Ayah ${verse.ayahNumber}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        val isThisAyahPlaying = isPlayingAudio && currentAyah == verse.ayahNumber
+                                        IconButton(
+                                            onClick = {
+                                                if (isThisAyahPlaying) {
+                                                    viewModel.pauseAudio()
+                                                } else {
+                                                    viewModel.playQuranAyah(verse.ayahNumber)
+                                                }
+                                            },
+                                            modifier = Modifier.size(28.dp).testTag("play_sbs_ayah_${verse.ayahNumber}")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isThisAyahPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                contentDescription = "Stream Ayah ${verse.ayahNumber}",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
                                     Spacer(modifier = Modifier.height(4.dp))
 
                                     when (readerTranslationMode) {
@@ -761,6 +798,28 @@ fun SurahReaderView(
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                        )
+                                    }
+
+                                    // Quick Stream Audio for this Ayah
+                                    val isThisAyahPlaying = isPlayingAudio && currentAyah == verse.ayahNumber
+                                    IconButton(
+                                        onClick = {
+                                            if (isThisAyahPlaying) {
+                                                viewModel.pauseAudio()
+                                            } else {
+                                                viewModel.playQuranAyah(verse.ayahNumber)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .testTag("play_ayah_${verse.ayahNumber}")
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isThisAyahPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                            contentDescription = "Stream Ayah ${verse.ayahNumber}",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
@@ -916,11 +975,17 @@ fun SurahReaderView(
             progress = audioProgress,
             playbackSpeed = playbackSpeed,
             selectedQari = selectedQari,
+            isBuffering = audioStatus == com.example.model.AudioPlaybackStatus.BUFFERING,
+            isLooping = isAudioLooping,
+            elapsedMs = elapsedMs,
+            totalDurationMs = durationMs,
             onPlayPause = { viewModel.toggleAudioPlayback() },
             onPrevious = { viewModel.previousAyah() },
             onNext = { viewModel.nextAyah() },
             onSpeedChange = { viewModel.setPlaybackSpeed(it) },
             onSelectQari = { viewModel.selectQari(it) },
+            onSeek = { viewModel.seekAudio(it) },
+            onToggleLoop = { viewModel.toggleAudioLoop() },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 

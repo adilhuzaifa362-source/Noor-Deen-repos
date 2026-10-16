@@ -27,12 +27,12 @@ class ExampleUnitTest {
 
     @Test
     fun testPrayerTimesComputation() {
-        val makkah = IslamicData.worldCities.first { it.name.startsWith("Makkah") }
+        val city = IslamicData.worldCities.first()
         val times = PrayerAndQiblaService.computePrayerTimes(
-            city = makkah,
+            city = city,
             calendar = Calendar.getInstance(),
-            calculationMethod = CalculationMethod.UMM_AL_QURA,
-            juristicMethod = JuristicMethod.SHAFI_STANDARD
+            calculationMethod = CalculationMethod.KARACHI,
+            juristicMethod = JuristicMethod.HANAFI
         )
 
         assertEquals("Should compute 6 times (5 prayers + sunrise)", 6, times.size)
@@ -90,5 +90,27 @@ class ExampleUnitTest {
         // Check Surah Al-Fatihah verses contain Tajweed spans
         val fatiha = IslamicData.fatihaVerses
         assertTrue(fatiha.any { it.tajweedSpans.isNotEmpty() })
+    }
+
+    @Test
+    fun testAudioStreamingAndQarisIntegrity() {
+        assertEquals(3, IslamicData.qaris.size)
+        val qariIds = IslamicData.qaris.map { it.id }
+        assertTrue(qariIds.contains("mishary"))
+        assertTrue(qariIds.contains("sudais"))
+        assertTrue(qariIds.contains("muaiqly"))
+
+        val mishary = IslamicData.qaris.first { it.id == "mishary" }
+        val fatihaAyah1Url = IslamicData.getAyahAudioUrl(mishary, 1, 1)
+        assertEquals("https://everyayah.com/data/Alafasy_128kbps/001001.mp3", fatihaAyah1Url)
+
+        val fourQuls = IslamicData.supplications.filter { it.category == com.example.model.DuaCategory.FOUR_QULS }
+        assertEquals(4, fourQuls.size)
+
+        val morningAdhkar = IslamicData.supplications.filter { it.category == com.example.model.DuaCategory.MORNING_ADHKAR }
+        assertTrue(morningAdhkar.isNotEmpty())
+
+        val eveningAdhkar = IslamicData.supplications.filter { it.category == com.example.model.DuaCategory.EVENING_ADHKAR }
+        assertTrue(eveningAdhkar.isNotEmpty())
     }
 }

@@ -18,13 +18,26 @@ import com.example.model.Verse
 object IslamicData {
 
     val qaris = listOf(
-        Qari("mishary", "Sheikh Mishary Rashid Alafasy", "Kuwait", "Murattal / Hafs"),
-        Qari("abdulbasit", "Sheikh Abdul Basit Abdul Samad", "Egypt", "Mujawwad / Classic"),
-        Qari("sudais", "Sheikh Abdur-Rahman As-Sudais", "Saudi Arabia", "Haramain Makkah"),
-        Qari("shuraym", "Sheikh Saud Ash-Shuraym", "Saudi Arabia", "Haramain Makkah"),
-        Qari("rifai", "Sheikh Hani Ar-Rifai", "Saudi Arabia", "Khushoo' / Emotive"),
-        Qari("muaiqly", "Sheikh Maher Al-Muaiqly", "Saudi Arabia", "Haramain Makkah")
+        Qari("mishary", "Sheikh Mishary Rashid Alafasy", "Kuwait", "Murattal / Hafs", "Alafasy_128kbps"),
+        Qari("sudais", "Sheikh Abdur-Rahman As-Sudais", "Saudi Arabia", "Chief Imam of Masjid al-Haram", "Abdurrahmaan_As-Sudais_192kbps"),
+        Qari("muaiqly", "Sheikh Maher Al-Muaiqly", "Saudi Arabia", "Imam of Masjid al-Haram", "MaherAlMuaiqly128kbps")
     )
+
+    fun getAyahAudioUrl(qari: Qari, surahNumber: Int, ayahNumber: Int): String {
+        val sStr = surahNumber.toString().padStart(3, '0')
+        val aStr = ayahNumber.toString().padStart(3, '0')
+        return "https://everyayah.com/data/${qari.folderName}/$sStr$aStr.mp3"
+    }
+
+    fun getSurahAudioUrl(qari: Qari, surahNumber: Int): String {
+        val sStr = surahNumber.toString().padStart(3, '0')
+        val server = when (qari.id) {
+            "sudais" -> "https://server11.mp3quran.net/sds"
+            "muaiqly" -> "https://server12.mp3quran.net/maher"
+            else -> "https://server8.mp3quran.net/afs"
+        }
+        return "$server/$sStr.mp3"
+    }
 
     // Regional countries for South Asia and neighboring nations
     val regionalCountries = listOf(
@@ -790,6 +803,189 @@ object IslamicData {
             virtue = "The Prophet (ﷺ) said: 'Two words are light on the tongue, heavy on the Balance, beloved to the Most Merciful: Subhanallahi wa bihamdihi, Subhanallahil-Azeem.'",
             reference = "Sahih al-Bukhari 6406 | Sahih Muslim 2694",
             targetCount = 100
+        ),
+        // Four Quls
+        Supplication(
+            id = "four_qul_kafirun",
+            titleEn = "Surah Al-Kafirun (The Disbelievers)",
+            titleUr = "سورۃ الکافرون (براءت از شرک)",
+            titleHi = "सूरह अल-काफ़िरून (शिर्क से बरी)",
+            titleAr = "سُورَةُ الْكَافِرُونَ",
+            category = DuaCategory.FOUR_QULS,
+            arabicText = "قُلْ يَا أَيُّهَا الْكَافِرُونَ ۝ لَا أَعْبُدُ مَا تَعْبُدُونَ ۝ وَلَا أَنتُمْ عَابِدُونَ مَا أَعْبُدُ ۝ وَلَا أَنَا عَابِدٌ مَّا عَبَدتُّمْ ۝ وَلَا أَنتُمْ عَابِدُونَ مَا أَعْبُدُ ۝ لَكُمْ دِينُكُمْ وَلِيَ دِينِ",
+            transliteration = "Qul yā ayyuhal-kāfirūn. Lā a‘budu mā ta‘budūn. Wa lā antum ‘ābidūna mā a‘bud. Wa lā ana ‘ābidum-mā ‘abattum. Wa lā antum ‘ābidūna mā a‘bud. Lakum dīnukum wa liya dīn.",
+            translationEn = "Say, 'O disbelievers, I do not worship what you worship. Nor are you worshippers of what I worship. Nor will I be a worshipper of what you worship. Nor will you be worshippers of what I worship. For you is your religion, and for me is my religion.'",
+            translationUr = "کہہ دیجیے: اے کافرو! میں ان بتوں کی عبادت نہیں کرتا جنہیں تم پوجتے ہو، اور نہ تم اس کی عبادت کرنے والے ہو جس کی میں عبادت کرتا ہوں۔ اور نہ میں ان کی عبادت کرنے والا ہوں جن کی تم نے عبادت کی ہے، اور نہ تم اس کی عبادت کرنے والے ہو جس کی میں عبادت کرتا ہوں۔ تمہارے لیے تمہارا دین اور میرے لیے میرا دین۔",
+            translationHi = "कह दो: ऐ काफ़िरो! मैं उनकी इबादत नहीं करता जिनकी तुम इबादत करते हो, और न तुम उसकी इबादत करने वाले हो जिसकी मैं इबादत करता हूँ। तुम्हारे लिए तुम्हारा धर्म और मेरे लिए मेरा धर्म।",
+            virtue = "The Prophet (ﷺ) said: 'Recite Qul Ya Ayyuhal Kafirun, then sleep at the end of it, for it is a disavowal of polytheism.' (Sunan Abi Dawud 5055, Sahih).",
+            reference = "Surah Al-Kafirun (109:1-6)",
+            targetCount = 1,
+            audioUrl = "https://everyayah.com/data/Alafasy_128kbps/109001.mp3"
+        ),
+        Supplication(
+            id = "four_qul_ikhlas",
+            titleEn = "Surah Al-Ikhlas (Purity of Faith)",
+            titleUr = "سورۃ الاخلاص (توحیدِ خالص)",
+            titleHi = "सूरह अल-इख़्लास (ईश्वर की एकता)",
+            titleAr = "سُورَةُ الإِخْلَاصِ",
+            category = DuaCategory.FOUR_QULS,
+            arabicText = "قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ",
+            transliteration = "Qul Huwal-lāhu Aḥad. Allāhuṣ-Ṣamad. Lam yalid wa lam yūlad. Wa lam yakul-lahū kufuwan aḥad.",
+            translationEn = "Say, 'He is Allah, [who is] One, Allah, the Eternal Refuge. He neither begets nor is born, Nor is there to Him any equivalent.'",
+            translationUr = "کہہ دیجیے کہ وہ اللہ ایک ہے۔ اللہ بے نیاز ہے۔ نہ اس کی کوئی اولاد ہے اور نہ وہ کسی کی اولاد ہے۔ اور نہ کوئی اس کا ہمسر ہے۔",
+            translationHi = "कह दो: वह अल्लाह एक है। अल्लाह निरपेक्ष (सबका सहारा) है। न उसने किसी को जना और न वह जना गया, और न कोई उसके बराबर है।",
+            virtue = "Equal to one third of the Quran in reward. Reciting it 3 times completes the equivalent of the whole Quran.",
+            reference = "Surah Al-Ikhlas (112:1-4) | Sahih al-Bukhari 5013",
+            targetCount = 3,
+            audioUrl = "https://everyayah.com/data/Alafasy_128kbps/112001.mp3"
+        ),
+        Supplication(
+            id = "four_qul_falaq",
+            titleEn = "Surah Al-Falaq (The Daybreak / Refuge from Evil)",
+            titleUr = "سورۃ الفلق (پناہ صبح کی)",
+            titleHi = "सूरह अल-फ़लक़ (सवेरे की पनाह)",
+            titleAr = "سُورَةُ الْفَلَقِ",
+            category = DuaCategory.FOUR_QULS,
+            arabicText = "قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ",
+            transliteration = "Qul a‘ūdhu bi-Rabbil-falaq. Min sharri mā khalaq. Wa min sharri ghāsiqin idhā waqab. Wa min sharrin-naffāthāti fil-‘uqad. Wa min sharri ḥāsidin idhā ḥasad.",
+            translationEn = "Say, 'I seek refuge in the Lord of daybreak From the evil of that which He created And from the evil of darkness when it settles And from the evil of the blowers in knots And from the evil of an envier when he envies.'",
+            translationUr = "کہہ دیجیے: میں صبح کے رب کی پناہ مانگتا ہوں، ہر اس چیز کے شر سے جو اس نے پیدا کی، اور اندھیری رات کے شر سے جب وہ چھا جائے، اور گرہوں میں پھونکنے والیوں کے شر سے، اور حسد کرنے والے کے شر سے جب وہ حسد کرے۔",
+            translationHi = "कह दो: मैं पनाह माँगता हूँ सवेरे के रब की, हर उस चीज़ की बुराई से जो उसने पैदा की, और अंधेरी रात की बुराई से जब वह छा जाए, और गांठों में फूंकने वालों की बुराई से, और डाह करने वाले की बुराई से जब वह डाह करे।",
+            virtue = "Ultimate protection against black magic, evil eye, and harms of creation.",
+            reference = "Surah Al-Falaq (113:1-5) | Sahih al-Bukhari 5017",
+            targetCount = 3,
+            audioUrl = "https://everyayah.com/data/Alafasy_128kbps/113001.mp3"
+        ),
+        Supplication(
+            id = "four_qul_nas",
+            titleEn = "Surah An-Nas (Mankind / Refuge from Whispers)",
+            titleUr = "سورۃ الناس (انسانوں کے رب کی پناہ)",
+            titleHi = "सूरह अन-नास (इंसानों के रब की पनाह)",
+            titleAr = "سُورَةُ النَّاسِ",
+            category = DuaCategory.FOUR_QULS,
+            arabicText = "قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ",
+            transliteration = "Qul a‘ūdhu bi-Rabbin-nās. Malikin-nās. Ilāhin-nās. Min sharril-waswāsil-khannās. Alladhī yuwaswisu fī ṣudūrin-nās. Minal-jinnati wan-nās.",
+            translationEn = "Say, 'I seek refuge in the Lord of mankind, The Sovereign of mankind. The God of mankind, From the evil of the retreating whisperer - Who whispers into the breasts of mankind - From among the jinn and mankind.'",
+            translationUr = "کہہ دیجیے: میں پناہ مانگتا ہوں انسانوں کے پروردگار کی، انسانوں کے بادشاہ کی، انسانوں کے سچے معبود کی، وسوسہ ڈالنے والے، پیچھے ہٹ جانے والے کے شر سے، جو لوگوں کے دلوں میں وسوسے ڈالتا ہے، خواہ وہ جنوں میں سے ہو یا انسانوں میں سے۔",
+            translationHi = "कह दो: मैं पनाह माँगता हूँ इंसानों के रब की, इंसानों के बादशाह की, इंसानों के सच्चे पूज्य की, पीछे हटने वाले बहकाने वाले की बुराई से, जो इंसानों के सीनों में वसवसा डालता है, जिन्नों में से हो या इंसानों में से।",
+            virtue = "Shields the believer from inner waswasah, devilish thoughts, and demonic disturbances.",
+            reference = "Surah An-Nas (114:1-6) | Sahih Muslim 814",
+            targetCount = 3,
+            audioUrl = "https://everyayah.com/data/Alafasy_128kbps/114001.mp3"
+        ),
+        // Morning Adhkar (أذكار الصباح)
+        Supplication(
+            id = "morning_asbahna",
+            titleEn = "Asbahna wa Asbahal Mulk (Morning Proclamation)",
+            titleUr = "اصبحنا واصبح الملك لله (صبح کا اعلانِ توحید)",
+            titleHi = "असबह्ना व असबहल मुल्क (प्रातः घोषणा)",
+            titleAr = "أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ",
+            category = DuaCategory.MORNING_ADHKAR,
+            arabicText = "أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذَا الْيَوْمِ وَخَيْرَ مَا بَعْدَهُ، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذَا الْيَوْمِ وَشَرِّ مَا بَعْدَهُ، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ",
+            transliteration = "Aṣbaḥnā wa aṣbaḥal-mulku lillāh, wal-ḥamdu lillāh, lā ilāha illallāhu waḥdahū lā sharīka lah, lahul-mulku wa lahul-ḥamdu wa Huwa ‘alā kulli shay'in Qadīr. Rabbi as'aluka khayra mā fī hādhal-yawmi wa khayra mā ba‘dah, wa a‘ūdhu bika min sharri mā fī hādhal-yawmi wa sharri mā ba‘dah. Rabbi a‘ūdhu bika minal-kasali wa sū'il-kibar, Rabbi a‘ūdhu bika min ‘adhābin fin-nāri wa ‘adhābin fil-qabr.",
+            translationEn = "We have reached the morning and the kingdom belongs to Allah, and all praise is for Allah. None has the right to be worshipped except Allah alone, without partner. To Him belongs the sovereignty and to Him is praise, and He has power over all things. My Lord, I ask You for the good of what is in this day and the good of what follows it, and I seek refuge in You from the evil of this day and what follows it. My Lord, I seek refuge in You from laziness and the hardships of old age. My Lord, I seek refuge in You from torment in the Fire and torment in the grave.",
+            translationUr = "ہم نے صبح کی اور اللہ کے سارے ملک نے صبح کی، اور تمام تعریفیں اللہ ہی کے لیے ہیں۔ اللہ کے سوا کوئی معبود نہیں، وہ اکیلا ہے، اس کا کوئی شریک نہیں۔ اسی کی بادشاہت ہے اور اسی کے لیے حمد ہے اور وہ ہر چیز پر قادر ہے۔ اے میرے رب! میں تجھ سے اس دن کی بھلائی اور اس کے بعد کی بھلائی کا سوال کرتا ہوں، اور میں اس دن کے شر اور اس کے بعد کے شر سے تیری پناہ مانگتا ہوں۔ اے میرے رب! میں سستی اور بڑھاپے کی برائی سے تیری پناہ مانگتا ہوں، اور آگ کے عذاب اور قبر کے عذاب سے تیری پناہ مانگتا ہوں۔",
+            translationHi = "हमने सुबह की और अल्लाह के सारे राज्य ने सुबह की, और सारी प्रशंसा अल्लाह के लिए है। अल्लाह के सिवा कोई पूज्य नहीं, वह अकेला है उसका कोई साझी नहीं। उसी का राज्य है और उसी की प्रशंसा और वह हर चीज़ पर सामर्थ्यवान है। हे मेरे रब! मैं तुझसे इस दिन की भलाई और इसके बाद की भलाई माँगता हूँ, और इस दिन की बुराई और इसके बाद की बुराई से तेरी पनाह चाहता हूँ।",
+            virtue = "Comprehensive morning protection from negligence, lethargy, punishment of the grave and Hellfire.",
+            reference = "Sahih Muslim 2723",
+            targetCount = 1
+        ),
+        Supplication(
+            id = "morning_bismillah",
+            titleEn = "Bismillahilladhi (Protection from All Harm 3x)",
+            titleUr = "بسم الله الذي لا يضر مع اسمه شيء (۳ مرتبہ)",
+            titleHi = "बिस्मिल्लाहिल्लज़ी (हर नुकसान से हिफ़ाज़त)",
+            titleAr = "بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ",
+            category = DuaCategory.MORNING_ADHKAR,
+            arabicText = "بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ",
+            transliteration = "Bismillāhilladhī lā yaḍurru ma‘as-mihī shay'un fil-arḍi wa lā fis-samā'i wa Huwas-Samī‘ul-‘Alīm.",
+            translationEn = "In the name of Allah, with whose name nothing can cause harm in the earth nor in the heavens, and He is the All-Hearing, the All-Knowing.",
+            translationUr = "اللہ کے نام کے ساتھ جس کے نام کی برکت سے زمین اور آسمان میں کوئی چیز نقصان نہیں پہنچا سکتی، اور وہی سب کچھ سننے والا اور جاننے والا ہے۔",
+            translationHi = "अल्लाह के नाम से, जिसके नाम के साथ ज़मीन और आसमान की कोई चीज़ नुक़सान नहीं पहुँचा सकती, और वही सब कुछ सुनने वाला, जानने वाला है।",
+            virtue = "The Prophet (ﷺ) said: 'Whoever says it 3 times in the morning and 3 times in the evening, nothing will harm him.' (Jami` at-Tirmidhi 3388, Sahih).",
+            reference = "Jami` at-Tirmidhi 3388 | Sunan Abi Dawud 5088",
+            targetCount = 3
+        ),
+        Supplication(
+            id = "morning_radheetu",
+            titleEn = "Radheetu Billahi Rabba (Contentment with Allah 3x)",
+            titleUr = "رضيت بالله ربا وبالإسلام دينا (۳ مرتبہ)",
+            titleHi = "रदीतु बिल्लाहि रब्बा (अल्लाह से राज़ी 3 बार)",
+            titleAr = "رَضِيتُ بِاللَّهِ رَبًّا وَبِالإِسْلَامِ دِينًا",
+            category = DuaCategory.MORNING_ADHKAR,
+            arabicText = "رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ نَبِيًّا",
+            transliteration = "Raḍītu billāhi Rabban, wa bil-Islāmi dīnan, wa bi-Muḥammadin (ṣallallāhu ‘alayhi wa sallama) Nabiyyā.",
+            translationEn = "I am pleased with Allah as my Lord, with Islam as my religion, and with Muhammad (ﷺ) as my Prophet.",
+            translationUr = "میں راضی ہوا اللہ کے رب ہونے پر، اور اسلام کے دین ہونے پر، اور محمد (ﷺ) کے نبی ہونے پر۔",
+            translationHi = "मैं राज़ी हुआ अल्लाह के रब होने पर, इस्लाम के धर्म होने पर, और मुहम्मद (ﷺ) के नबी होने पर।",
+            virtue = "The Prophet (ﷺ) said: 'Whoever says this 3 times in the morning and evening, it is a duty upon Allah to please him on the Day of Resurrection.' (At-Tirmidhi 3389).",
+            reference = "Sunan Abi Dawud 5072 | Jami` at-Tirmidhi 3389 (Hasan)",
+            targetCount = 3
+        ),
+        Supplication(
+            id = "morning_subhanallah_adada",
+            titleEn = "Subhanallahi wa Bihamdihi 'Adada Khalqihi (3x)",
+            titleUr = "سبحان الله وبحمده عدد خلقه (۳ مرتبہ)",
+            titleHi = "सुब्हानल्लाहि वबिहम्दिही अददा ख़ल्क़िही",
+            titleAr = "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ عَدَدَ خَلْقِهِ",
+            category = DuaCategory.MORNING_ADHKAR,
+            arabicText = "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، عَدَدَ خَلْقِهِ، وَرِضَا نَفْسِهِ، وَزِنَةَ عَرْشِهِ، وَمِدَادَ كَلِمَاتِهِ",
+            transliteration = "Subḥānallāhi wa biḥamdih, ‘adada khalqih, wa riḍā nafsih, wa zinata ‘arshih, wa midāda kalimātih.",
+            translationEn = "Glory be to Allah and His is the praise, by the number of His creation, by His pleasure, by the weight of His Throne, and by the ink of His words.",
+            translationUr = "پاک ہے اللہ اپنی حمد کے ساتھ، اس کی مخلوق کی تعداد کے برابر، اس کی ذات کی رضا کے مطابق، اس کے عرش کے وزن جتنا، اور اس کے کلمات کی سیاہی کے برابر۔",
+            translationHi = "पवित्र है अल्लाह अपनी प्रशंसा के साथ, उसकी सृष्टि की संख्या के बराबर, उसकी प्रसन्नता के अनुसार, उसके अर्श के भार जितना, और उसके शब्दों की स्याही के बराबर।",
+            virtue = "Weighs heavier on the scales than hours of ordinary dhikr recitation.",
+            reference = "Sahih Muslim 2726",
+            targetCount = 3
+        ),
+        // Evening Adhkar (أذكار المساء)
+        Supplication(
+            id = "evening_amsayna",
+            titleEn = "Amsayna wa Amsal Mulk (Evening Proclamation)",
+            titleUr = "امسينا وامسى الملك لله (شام کا اعلانِ توحید)",
+            titleHi = "अम्सैना व अम्सल मुल्क (संध्या घोषणा)",
+            titleAr = "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ",
+            category = DuaCategory.EVENING_ADHKAR,
+            arabicText = "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، رَبِّ أَسْأَلُكَ خَيْرَ مَا فِي هَذِهِ اللَّيْلَةِ وَخَيْرَ مَا بَعْدَهَا، وَأَعُوذُ بِكَ مِنْ شَرِّ مَا فِي هَذِهِ اللَّيْلَةِ وَشَرِّ مَا بَعْدَهَا، رَبِّ أَعُوذُ بِكَ مِنَ الْكَسَلِ وَسُوءِ الْكِبَرِ، رَبِّ أَعُوذُ بِكَ مِنْ عَذَابٍ فِي النَّارِ وَعَذَابٍ فِي الْقَبْرِ",
+            transliteration = "Amsaynā wa amsal-mulku lillāh, wal-ḥamdu lillāh, lā ilāha illallāhu waḥdahū lā sharīka lah, lahul-mulku wa lahul-ḥamdu wa Huwa ‘alā kulli shay'in Qadīr. Rabbi as'aluka khayra mā fī hādhihil-laylati wa khayra mā ba‘dahā, wa a‘ūdhu bika min sharri mā fī hādhihil-laylati wa sharri mā ba‘dahā. Rabbi a‘ūdhu bika minal-kasali wa sū'il-kibar, Rabbi a‘ūdhu bika min ‘adhābin fin-nāri wa ‘adhābin fil-qabr.",
+            translationEn = "We have reached the evening and the kingdom belongs to Allah, and all praise is for Allah. None has the right to be worshipped except Allah alone, without partner. To Him belongs the sovereignty and praise, and He has power over all things. My Lord, I ask You for the good of this night and the good of what follows it, and I seek refuge in You from the evil of this night and what follows it.",
+            translationUr = "ہم نے شام کی اور اللہ کے سارے ملک نے شام کی، اور تمام تعریفیں اللہ ہی کے لیے ہیں۔ اللہ کے سوا کوئی معبود نہیں، وہ اکیلا ہے، اس کا کوئی شریک نہیں۔ اے میرے رب! میں تجھ سے اس رات کی بھلائی اور اس کے بعد کی بھلائی کا سوال کرتا ہوں، اور اس رات کے شر اور اس کے بعد کے شر سے تیری پناہ مانگتا ہوں۔",
+            translationHi = "हमने शाम की और अल्लाह के सारे राज्य ने शाम की, और सारी प्रशंसा अल्लाह के लिए है। अल्लाह के सिवा कोई पूज्य नहीं, वह अकेला है उसका कोई साझी नहीं। हे मेरे रब! मैं तुझसे इस रात की भलाई और इसके बाद की भलाई माँगता हूँ।",
+            virtue = "Evening fortress and protection from nighttime calamities, nightmares, and evil.",
+            reference = "Sahih Muslim 2723",
+            targetCount = 1
+        ),
+        Supplication(
+            id = "evening_audhu_bikalimatillah",
+            titleEn = "A'udhu bi Kalimatillah (Protection from Venom & Harm 3x)",
+            titleUr = "اعوذ بكلمات الله التامات من شر ما خلق (۳ مرتبہ)",
+            titleHi = "अऊज़ु बिकलिमातिल्लाहि (विषैले जीवों से हिफ़ाज़त)",
+            titleAr = "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
+            category = DuaCategory.EVENING_ADHKAR,
+            arabicText = "أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",
+            transliteration = "A‘ūdhu bi-kalimātillāhit-tāmmāti min sharri mā khalaq.",
+            translationEn = "I seek refuge in the perfect words of Allah from the evil of what He has created.",
+            translationUr = "میں اللہ کے مکمل کلمات کی پناہ مانگتا ہوں ہر اس چیز کے شر سے جو اس نے پیدا فرمائی۔",
+            translationHi = "मैं अल्लाह के सम्पूर्ण शब्दों की पनाह माँगता हूँ हर उस चीज़ की बुराई से जो उसने पैदा की।",
+            virtue = "The Prophet (ﷺ) said: 'Whoever says it 3 times in the evening, no poisonous bite or sting will harm him that night.' (Sahih Muslim 2709).",
+            reference = "Sahih Muslim 2709 | Jami` at-Tirmidhi 3604",
+            targetCount = 3
+        ),
+        Supplication(
+            id = "evening_hasbiyallahu",
+            titleEn = "Hasbiyallahu (Sufficient is Allah 7x)",
+            titleUr = "حسبي الله لا إله إلا هو (۷ مرتبہ)",
+            titleHi = "हसबियल्लाहु ला इलाहा इल्ला हुवा (7 बार)",
+            titleAr = "حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ",
+            category = DuaCategory.EVENING_ADHKAR,
+            arabicText = "حَسْبِيَ اللَّهُ لَا إِلَهَ إِلَّا هُوَ ۖ عَلَيْهِ تَوَكَّلْتُ ۖ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ",
+            transliteration = "Ḥasbiyallāhu lā ilāha illā Huwa, ‘alayhi tawakkaltu wa Huwa Rabbul-‘Arshil-‘Aẓīm.",
+            translationEn = "Allah is sufficient for me; there is no deity except Him. Upon Him I have relied, and He is the Lord of the Great Throne.",
+            translationUr = "مجھے اللہ ہی کافی ہے، اس کے سوا کوئی معبود نہیں، اسی پر میں نے بھروسہ کیا اور وہی عرشِ عظیم کا رب ہے۔",
+            translationHi = "मेरे लिए अल्लाह ही काफ़ी है, उसके सिवा कोई पूज्य नहीं, उसी पर मैंने भरोसा किया और वह महान अर्श का रब है।",
+            virtue = "The Prophet (ﷺ) said: 'Whoever says it 7 times in the morning and evening, Allah will suffice him for whatever worries him in this world and the hereafter.' (Sunan Abi Dawud 5081).",
+            reference = "Sunan Abi Dawud 5081 (Sahih Mawquf)",
+            targetCount = 7
         )
     )
 

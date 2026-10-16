@@ -9,6 +9,9 @@ import android.os.VibratorManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.IslamicData
+import com.example.model.ActiveAudioTrack
+import com.example.model.AudioPlaybackStatus
+import com.example.service.AudioPlaybackManager
 import com.example.model.AppLanguage
 import com.example.model.AsmaName
 import com.example.model.CalculationMethod
@@ -288,6 +291,35 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
         updatePrayerTimes()
         initCompass()
         refreshPrayerTimes()
+
+        // Sync AudioPlaybackManager events
+        AudioPlaybackManager.onAyahChangedListener = { surahNum, ayahNum ->
+            if (_selectedSurah.value.number == surahNum) {
+                _currentPlayingAyah.value = ayahNum
+            }
+        }
+
+        viewModelScope.launch {
+            AudioPlaybackManager.playbackStatus.collect { status ->
+                _isPlayingAudio.value = (status == AudioPlaybackStatus.PLAYING)
+            }
+        }
+        viewModelScope.launch {
+            AudioPlaybackManager.currentPositionMs.collect { pos ->
+                val dur = AudioPlaybackManager.durationMs.value
+                _audioProgress.value = if (dur > 0) (pos.toFloat() / dur).coerceIn(0f, 1f) else 0f
+            }
+        }
+        viewModelScope.launch {
+            AudioPlaybackManager.selectedQari.collect { q ->
+                _selectedQari.value = q
+            }
+        }
+        viewModelScope.launch {
+            AudioPlaybackManager.playbackSpeed.collect { sp ->
+                _playbackSpeed.value = sp
+            }
+        }
     }
 
     // Localization
@@ -306,6 +338,9 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun openDuasAndAzkar() {
+        if (_selectedDua.value == null) {
+            _selectedDua.value = IslamicData.supplications.firstOrNull()
+        }
         _currentSubScreen.value = SubScreen.DUAS_AND_AZKAR
     }
 
@@ -321,8 +356,8 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
     fun openSurah(surah: Surah) {
         _selectedSurah.value = surah
         _currentPlayingAyah.value = 1
-        _isPlayingAudio.value = false
-        audioJob?.cancel()
+        _selectedAyahIndex.value = 1
+        AudioPlaybackManager.stop()
         _currentSubScreen.value = SubScreen.SURAH_READER
     }
 
@@ -340,67 +375,131 @@ class NoorDeenViewModel(application: Application) : AndroidViewModel(application
 
     fun selectQari(qari: Qari) {
         _selectedQari.value = qari
+        AudioPlaybackManager.selectQari(qari)
     }
 
     fun setPlaybackSpeed(speed: Float) {
         _playbackSpeed.value = speed
+        AudioPlaybackManager.setPlaybackSpeed(speed)
+    }
+
+    fun playQuranAyah(ayahNumber: Int) {
+        val surah = _selectedSurah.value
+        val totalAyahs = surah.verses.size.coerceAtLeast(surah.totalAyahs)
+        _currentPlayingAyah.value = ayahNumber
+        _selectedAyahIndex.value = ayahNumber
+        AudioPlaybackManager.playQuranAyah(
+            surahNumber = surah.number,
+            ayahNumber = ayahNumber,
+            totalAyahs = totalAyahs,
+            surahName = surah.nameEn,
+            qari = _selectedQari.value
+        )
     }
 
     fun toggleAudioPlayback() {
         if (_isPlayingAudio.value) {
             pauseAudio()
         } else {
-            playAudio()
-        }
-    }
-
-    private fun playAudio() {
-        _isPlayingAudio.value = true
-        audioJob?.cancel()
-        audioJob = viewModelScope.launch {
-            val totalAyahs = _selectedSurah.value.verses.size.coerceAtLeast(1)
-            while (isActive && _isPlayingAudio.value) {
-                // simulate verse audio playback with progress
-                val stepDuration = ((3500L / _playbackSpeed.value) / 20).toLong()
-                for (step in 1..20) {
-                    delay(stepDuration)
-                    _audioProgress.value = step / 20f
-                }
-                _audioProgress.value = 0f
-                if (_currentPlayingAyah.value < totalAyahs) {
-                    _currentPlayingAyah.value += 1
-                } else {
-                    _currentPlayingAyah.value = 1
-                    _isPlayingAudio.value = false
-                    break
-                }
+            val track = AudioPlaybackManager.activeTrack.value
+            val surah = _selectedSurah.value
+            if (track != null && track.surahNumber == surah.number && track.ayahNumber == _currentPlayingAyah.value) {
+                AudioPlaybackManager.resume()
+            } else {
+                playQuranAyah(_currentPlayingAyah.value)
             }
         }
     }
 
     fun pauseAudio() {
-        _isPlayingAudio.value = false
-        audioJob?.cancel()
+        AudioPlaybackManager.pause()
     }
 
     fun nextAyah() {
-        val total = _selectedSurah.value.verses.size.coerceAtLeast(1)
+        val surah = _selectedSurah.value
+        val total = surah.verses.size.coerceAtLeast(surah.totalAyahs)
         if (_currentPlayingAyah.value < total) {
-            _currentPlayingAyah.value += 1
-            _audioProgress.value = 0f
+            val next = _currentPlayingAyah.value + 1
+            _currentPlayingAyah.value = next
+            _selectedAyahIndex.value = next
+            if (_isPlayingAudio.value) {
+                playQuranAyah(next)
+            }
         }
     }
 
     fun previousAyah() {
         if (_currentPlayingAyah.value > 1) {
-            _currentPlayingAyah.value -= 1
-            _audioProgress.value = 0f
+            val prev = _currentPlayingAyah.value - 1
+            _currentPlayingAyah.value = prev
+            _selectedAyahIndex.value = prev
+            if (_isPlayingAudio.value) {
+                playQuranAyah(prev)
+            }
+        }
+    }
+
+    fun seekAudio(progress: Float) {
+        val dur = AudioPlaybackManager.durationMs.value
+        if (dur > 0) {
+            val posMs = (progress.coerceIn(0f, 1f) * dur).toInt()
+            AudioPlaybackManager.seekTo(posMs)
         }
     }
 
     fun jumpToAyah(ayahNumber: Int) {
         _selectedAyahIndex.value = ayahNumber
         _currentPlayingAyah.value = ayahNumber
+        if (_isPlayingAudio.value) {
+            playQuranAyah(ayahNumber)
+        }
+    }
+
+    fun toggleAudioLoop() {
+        AudioPlaybackManager.toggleLoop()
+    }
+
+    val isAudioLooping: StateFlow<Boolean> = AudioPlaybackManager.isLooping
+    val activeAudioTrack: StateFlow<ActiveAudioTrack?> = AudioPlaybackManager.activeTrack
+    val audioDurationMs: StateFlow<Int> = AudioPlaybackManager.durationMs
+    val audioPositionMs: StateFlow<Int> = AudioPlaybackManager.currentPositionMs
+    val audioPlaybackStatus: StateFlow<AudioPlaybackStatus> = AudioPlaybackManager.playbackStatus
+
+    // Dua Audio
+    fun playDuaAudio(dua: Supplication) {
+        AudioPlaybackManager.playDuaRecitation(dua)
+    }
+
+    fun playDuaTranslationTts(dua: Supplication, lang: AppLanguage = _currentLanguage.value) {
+        val (text, code, label) = when (lang) {
+            AppLanguage.URDU -> Triple(dua.translationUr, "ur", "Urdu Translation")
+            AppLanguage.HINDI -> Triple(dua.translationHi, "hi", "Hindi Translation")
+            else -> Triple(dua.translationEn, "en", "English Translation")
+        }
+        AudioPlaybackManager.speakText(
+            title = dua.titleEn,
+            subtitle = "$label Voice",
+            text = text,
+            languageCode = code
+        )
+    }
+
+    // Hadith Audio
+    fun playHadithAudio(hadith: Hadith, playArabic: Boolean = true) {
+        if (playArabic) {
+            AudioPlaybackManager.playHadithAudio(hadith, "ar")
+        } else {
+            val langCode = when (_currentLanguage.value) {
+                AppLanguage.URDU -> "ur"
+                AppLanguage.HINDI -> "hi"
+                else -> "en"
+            }
+            AudioPlaybackManager.playHadithAudio(hadith, langCode)
+        }
+    }
+
+    fun stopAudio() {
+        AudioPlaybackManager.stop()
     }
 
     fun setReaderTranslationLanguage(language: AppLanguage) {
